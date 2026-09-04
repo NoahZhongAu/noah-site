@@ -113,7 +113,7 @@ export default function Styleguide() {
       <Block title="Type scale">
         <p className="text-headline">Headline serif</p>
         <p className="text-section">Section title</p>
-        <p className="max-w-[56ch]">
+        <p className="max-w-measure">
           Body copy at clamp(17px, 1.15vw, 20px). The site organises its colour
           as white on the one background, and the programme of motion is fixed
           in the PRD.

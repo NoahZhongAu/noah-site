@@ -30,6 +30,9 @@
   --space-section: 96px;
   --gutter: clamp(24px, 5vw, 80px);
 
+  /* Body copy measure; PRD §4.1 caps the bio at 56 characters per line. */
+  --measure: 56ch;
+
   --text-headline: clamp(3rem, 8.5vw, 6rem);
   --text-section: clamp(2.5rem, 6vw, 4.5rem);
   --text-body: clamp(17px, 1.15vw, 20px);

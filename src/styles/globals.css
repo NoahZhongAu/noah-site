@@ -19,6 +19,7 @@
   --ease-out: var(--ease-out);
   --spacing-section: var(--space-section);
   --spacing-gutter: var(--gutter);
+  --container-measure: var(--measure);
 }
 
 @layer base {
