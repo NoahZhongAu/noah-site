@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Noah Zhong résumé site
 
-## Getting Started
+A single-page personal site built with Next.js 16, TypeScript and Tailwind CSS v4, deployed on Vercel. The product requirements live in [docs/PRD.md](docs/PRD.md) and the implementation plan in [docs/PLAN.md](docs/PLAN.md). Architectural decisions are recorded in [docs/adr/](docs/adr/) and each milestone ends with a report in [docs/reports/](docs/reports/).
 
-First, run the development server:
+## Setup
+
+Node 22 and pnpm 10, both pinned in `.nvmrc` and `package.json`.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+nvm use
+pnpm install
+cp .env.example .env.local   # fill in the values you have
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`pnpm install` also installs the Husky pre-commit hook, which runs ESLint and Prettier on staged files.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script          | What it does                                                                          |
+| --------------- | ------------------------------------------------------------------------------------- |
+| `pnpm dev`      | Local server with hot reload.                                                         |
+| `pnpm check`    | Typecheck, lint, format check, unit tests, build, JS budget. Must be green to commit. |
+| `pnpm test`     | Vitest unit tests.                                                                    |
+| `pnpm e2e`      | Playwright end-to-end tests against `next start`. Run `pnpm build` first.             |
+| `pnpm lhci`     | Lighthouse CI, mobile, three runs, median must score 95 or better in every category.  |
+| `pnpm js-size`  | Gzipped size of first-party scripts on `/`. Fails above 200KB.                        |
+| `pnpm lint:fix` | ESLint and Prettier fixes.                                                            |
 
-## Learn More
+## Architecture
 
-To learn more about Next.js, take a look at the following resources:
+Four layers. Dependencies point inward only, enforced by `eslint-plugin-boundaries`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+content/          résumé data + Zod schemas      imported by everything, imports nothing
+src/domain/       pure functions, contact schema no framework imports, no I/O
+src/application/  EmailSender, contact handler   may import domain
+src/components/   primitives/ composites/ sections/
+src/app/          routes, layout, one API route  may import all of the above
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+`src/styles/tokens.css` is the only place a colour, duration or radius is written. Components use the tokens by name.
 
-## Deploy on Vercel
+## Editing content
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+All résumé text lives in `content/resume.ts` and is validated by the Zod schema in `content/schema.ts` at build time. An invalid entry fails `pnpm build` with the path of the offending field. No component contains résumé text. (Arrives in milestone 2.)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Replacing the résumé PDF
+
+Overwrite `public/resume/noah-zhong-resume.pdf`. The `/resume` route redirects there, so the shareable link never changes. A unit test checks the file exists, is a PDF, and is under 1MB. (Redirect arrives in milestone 2.)
+
+## Deploy
+
+The site deploys from GitHub to Vercel. Every pull request gets a preview; `main` deploys to production. Set the variables from `.env.example` in the Vercel project. `/styleguide` is available in `pnpm dev` only and returns 404 in production builds.

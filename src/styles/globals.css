@@ -1,0 +1,121 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* Expose the tokens to Tailwind so utilities like bg-bg, text-fg-62 and font-display exist. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-fg-80: var(--fg-80);
+  --color-fg-62: var(--fg-62);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-glass: var(--glass);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+  --radius-input: var(--radius-input);
+  --radius-card: var(--radius-card);
+  --radius-pill: var(--radius-pill);
+  --ease-out: var(--ease-out);
+  --spacing-section: var(--space-section);
+  --spacing-gutter: var(--gutter);
+  --container-measure: var(--measure);
+}
+
+@layer base {
+  html {
+    background: var(--bg);
+    color: var(--fg);
+    color-scheme: dark;
+    -webkit-font-smoothing: antialiased;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    line-height: 1.6;
+    min-height: 100svh;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    text-wrap: balance;
+  }
+
+  :focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+  }
+
+  ::selection {
+    background: var(--fg);
+    color: var(--bg);
+  }
+}
+
+/* PRD §8 type scale. Utilities so the styleguide and sections share one definition. */
+@utility text-headline {
+  font-family: var(--font-display);
+  font-size: var(--text-headline);
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+}
+
+@utility text-section {
+  font-family: var(--font-display);
+  font-size: var(--text-section);
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+}
+
+@utility text-mono-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-mono);
+  letter-spacing: var(--tracking-mono-wide);
+  text-transform: uppercase;
+}
+
+@utility text-mono-tight {
+  font-family: var(--font-mono);
+  font-size: var(--text-mono-lg);
+  letter-spacing: var(--tracking-mono-tight);
+}
+
+/* Background layers (PRD V9): every section sits on --bg with the same grain, never flat black. */
+.bg-wash {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 80% at 50% 0%, var(--line-soft), transparent 70%),
+    var(--bg);
+}
+
+.bg-grain {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.4;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
+}
+
+/* Reduced motion shows the finished state: every animation and transition completes at once. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

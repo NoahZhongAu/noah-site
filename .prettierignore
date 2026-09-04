@@ -3,3 +3,6 @@ node_modules
 pnpm-lock.yaml
 public
 docs
+.lighthouseci
+playwright-report
+test-results
