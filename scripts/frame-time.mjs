@@ -8,25 +8,51 @@
 // deltas for the 1.1s focus pull. Prints average fps and the worst frame.
 // Not a CI gate: the number goes in the milestone report. Under 50fps means
 // --focus-blur drops from 18px to 10px before anything else is tried.
+//
+// Knobs, for finding what a low number is made of:
+//   FRAME_CPU=4         CPU throttle rate (1 = none)
+//   FRAME_BLUR=18       overrides --focus-blur for the run, in px
+//   FRAME_FIREFLIES=on  "off" emulates Save-Data so no canvas mounts
+//   FRAME_GPU=on        "off" runs headless. Headless Chromium rasterises in
+//                       software, so a blur filter costs the same at 0px or
+//                       18px and the page sits near 15fps whatever the CPU
+//                       rate; that is not a phone profile. Headed uses the
+//                       GPU compositor, which is what phones do, at 4x CPU.
 import { chromium } from "@playwright/test";
 import { spawn } from "node:child_process";
 
 const port = 3012;
+const cpu = Number(process.env.FRAME_CPU ?? 4);
+const blur = process.env.FRAME_BLUR;
+const fireflies = process.env.FRAME_FIREFLIES !== "off";
+const gpu = process.env.FRAME_GPU !== "off";
 const server = spawn("pnpm", ["start", "--port", String(port)], {
   stdio: "ignore",
 });
 await new Promise((resolve) => setTimeout(resolve, 2500));
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({ headless: !gpu });
 const context = await browser.newContext({
   viewport: { width: 1080, height: 1920 },
   deviceScaleFactor: 1,
 });
 const page = await context.newPage();
+if (!fireflies) {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "connection", {
+      configurable: true,
+      value: { saveData: true },
+    });
+  });
+}
 const client = await context.newCDPSession(page);
-await client.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+await client.send("Emulation.setCPUThrottlingRate", { rate: cpu });
 
 await page.goto(`http://localhost:${port}/`, { waitUntil: "networkidle" });
+if (blur) await page.addStyleTag({ content: `:root{--focus-blur:${blur}px}` });
+console.log(
+  `cpu ${cpu}x, blur ${blur ?? "18 (token)"}px, fireflies ${fireflies ? "on" : "off"}, gpu ${gpu ? "on" : "off"}`,
+);
 await page.evaluate(() =>
   document
     .querySelector("#story .story-step")
