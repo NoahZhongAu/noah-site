@@ -2,7 +2,7 @@
 
 Written 2026-09-04 from CLAUDE.md, docs/PRD.md v1.1, every file in docs/references/, and the Next.js 16.3.4 docs bundled in `node_modules/next/dist/docs/`. No application code exists yet; the repo is the untouched `create-next-app` scaffold plus tooling.
 
-**Status: decisions resolved 2026-09-04, except §6 item 1 (JS budget), which is still open.** The PRD, CLAUDE.md and `reference.html` were updated to match; `hero-prompt-v2.md` was deleted; ADR 0002 records the CSP decision. Milestone 1 can start once item 1 has a number.
+**Status: all decisions resolved 2026-09-04.** The PRD, CLAUDE.md and `reference.html` were updated to match; `hero-prompt-v2.md` was deleted; ADR 0002 records the CSP decision. Milestone 1 can start.
 
 Read order: §1 (what Next.js 16 changed), §6 (PRD issues and how each was resolved), then §5 (milestones). §2 to §4 are the reference material the milestones point at.
 
@@ -21,7 +21,7 @@ The PRD was written for Next.js 15. The scaffold installed 16.3.4 with React 19.
 | N5 | `params`, `searchParams`, `cookies`, `headers` are async only. `opengraph-image` and `sitemap` receive promises. | §3 supporting routes. | We never read `searchParams` on the server. `opengraph-image.tsx` and `sitemap.ts` at the root take no params, so nothing to await. |
 | N6 | Turbopack is the default for `dev` and `build`. A `webpack()` key in config fails the build. | A3, S12: nothing webpack-specific, but worth stating. | No bundler config. `eslint-plugin-boundaries` is a lint rule, not a bundler plugin, so it is unaffected. |
 | N7 | Route types are generated: `LayoutProps<'/'>` and `PageProps` are globals produced by `next typegen`, and `next-env.d.ts` is git-ignored by the scaffold. **Verified:** on a clean checkout `pnpm typecheck` fails with `Cannot find name 'LayoutProps'` until a build or typegen has run. | §11 M1 "CI green"; `pnpm check` runs typecheck before build. | Milestone 1 changes the script to `"typecheck": "next typegen && tsc --noEmit"`. |
-| N8 | `next build` no longer prints route sizes or First Load JS. | §10 "JavaScript shipped to the client ≤ 120KB gzipped on `/`". | We measure it ourselves: a script sums the gzipped size of every `<script src>` in `.next/server/app/index.html`, skipping the `noModule` polyfill. **Verified on the empty scaffold: 136.0KB gzipped for modern browsers** (174.7KB including the 38.7KB legacy polyfill). The budget is below the framework floor. See §6 item 1. |
+| N8 | `next build` no longer prints route sizes or First Load JS. | §10 JavaScript budget (now 200KB gzipped, first-party only). | We measure it ourselves: a script sums the gzipped size of every `<script src>` in `.next/server/app/index.html`, skipping the `noModule` polyfill. **Verified on the empty scaffold: 136.0KB gzipped for modern browsers** (174.7KB including the 38.7KB legacy polyfill). The original 120KB budget was below the framework floor; resolved at 200KB, see §6 item 1. |
 | N9 | Next no longer overrides `scroll-behavior: smooth` during navigation. | S2: "Know more" smooth-scrolls, respecting reduced motion. | We do not set `scroll-behavior` globally. `scrollIntoView({ behavior })` picks `smooth` or `auto` from `prefers-reduced-motion`. Nav anchors use the same helper. |
 | N10 | Route Handlers: `runtime = 'edge'` is deprecated, `nodejs` is the default. GET is dynamic by default; POST always was. | §7.1 "Runtime: Node.js". | Nothing to change. We omit the `runtime` export because the default is already correct. |
 | N11 | React Compiler support is stable but opt-in and needs `babel-plugin-react-compiler`. | Not mentioned. | Not enabled. It is a dependency the PRD did not name and the page has almost no re-render pressure. |
@@ -308,7 +308,7 @@ Steps:
 6. Fonts in `layout.tsx`: Instrument Serif 400 (+italic), Inter 400/500, JetBrains Mono 400/500 via `next/font/google`.
 7. Layout shell: `html lang="en-AU"`, skip link, `BackgroundLayers`, `EdgeGradientDefs`, `<main id="main">`, empty `page.tsx`, `not-found.tsx`. `@vercel/analytics` and `@vercel/speed-insights` components in layout.
 8. `/styleguide`: tokens, type scale, every primitive in every state, glass and draw buttons, reduced-motion toggle note. `notFound()` in production.
-9. `scripts/client-js-size.mjs` (N8) printing the gzipped total and failing above the agreed budget.
+9. `scripts/client-js-size.mjs` (N8): sums the gzipped size of first-party scripts referenced by the prerendered `/` HTML, skipping the `noModule` polyfill, prints the total, and exits non-zero above 200KB. Runs in `pnpm check` and CI.
 10. `.github/workflows/ci.yml`: install, `pnpm check`, `pnpm e2e`, LHCI. `.env.example` with the five §7.3 variables.
 11. README skeleton: setup, scripts, layer diagram, how to edit content, how to replace the PDF, deploy.
 
@@ -320,6 +320,7 @@ Acceptance:
 - `/styleguide` renders in dev and returns 404 from `next start`.
 - CI runs on a pull request and every job passes on the empty page.
 - Lighthouse mobile on the empty page: all four categories ≥ 95 (this is the floor; if it fails here the budget can never be met).
+- `pnpm js-size` passes on the empty page and reports about 136KB; setting the budget to 100KB temporarily makes `pnpm check` fail, proving the gate works.
 
 Tests:
 - Unit: none yet beyond a smoke test that Vitest and jsdom run.
@@ -467,9 +468,9 @@ Tests: all previous suites, plus a metadata E2E (title, canonical, OG tags, JSON
 
 ## 6. Ambiguities, contradictions and errors in the PRD
 
-Each item ends with the recommendation the plan assumed. Owner answers from 2026-09-04 are marked **Resolved**; the PRD now reflects them. Item 1 is the only one still open.
+Each item ends with the recommendation the plan assumed. Owner answers from 2026-09-04 are marked **Resolved**; the PRD now reflects them.
 
-1. **JS budget is below the framework floor (§10). Decision.** The empty Next 16 scaffold ships 136KB gzipped to modern browsers before a line of app code (N8). `motion/react` with `layout` animations adds roughly 35 to 45KB, Vercel Analytics and Speed Insights about 3KB, our code perhaps 15KB. A realistic first-party total is 190 to 200KB. Recommendation: set the budget to **200KB gzipped, first-party scripts only, legacy polyfill and third-party Turnstile excluded**, measured by `scripts/client-js-size.mjs`, and revisit after M3 with real numbers. Alternative: drop Framer Motion and do fade-rise and the card morph in CSS, saving ~40KB but losing the layout morph quality V7 asks for. That would need an ADR. **Open: no number agreed yet.** The `js-size` script in M1 will print the total without failing until a budget is set.
+1. **JS budget is below the framework floor (§10). Decision.** The empty Next 16 scaffold ships 136KB gzipped to modern browsers before a line of app code (N8). `motion/react` with `layout` animations adds roughly 35 to 45KB, Vercel Analytics and Speed Insights about 3KB, our code perhaps 15KB. A realistic first-party total is 190 to 200KB. Recommendation: set the budget to **200KB gzipped, first-party scripts only, legacy polyfill and third-party Turnstile excluded**, measured by `scripts/client-js-size.mjs`, and revisit after M3 with real numbers. Alternative: drop Framer Motion and do fade-rise and the card morph in CSS, saving ~40KB but losing the layout morph quality V7 asks for. That would need an ADR. **Resolved:** 200KB gzipped, first-party only, enforced as a failing check in `pnpm check` and CI from Milestone 1. PRD §10 updated.
 
 2. **`pnpm check` contents differ between CLAUDE.md and the repo.** CLAUDE.md says check includes unit tests; the bootstrap script does not. M1 adds `test` and `js-size` to `check`. `pnpm e2e` stays separate because Playwright takes minutes; CI runs it as its own job.
 

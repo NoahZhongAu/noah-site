@@ -286,7 +286,7 @@ All enforced in CI on every pull request. A failing gate blocks merge.
 - Lighthouse mobile: Performance, Accessibility, Best Practices, SEO all ≥ 95.
 - LCP ≤ 2.0s (the poster image is the LCP element; verify in the Lighthouse trace).
 - CLS ≤ 0.05. No layout shift from fonts, video, or animation.
-- JavaScript shipped to the client ≤ 120KB gzipped on `/`.
+- JavaScript shipped to the client ≤ 200KB gzipped on `/`, first-party scripts only: the legacy `noModule` polyfill and third-party scripts (Turnstile, Vercel Analytics) are excluded. Measured by `scripts/client-js-size.mjs` over the scripts referenced by the prerendered `/` HTML; a failing check in `pnpm check` and CI from milestone 1. (Was 120KB; raised 2026-09-04 because the empty Next.js 16 scaffold measures 136KB.)
 - No scroll event listeners in the codebase. Grep for `addEventListener("scroll"` returns nothing.
 - Video and any future canvas pause when off-screen and when the tab is hidden.
 
