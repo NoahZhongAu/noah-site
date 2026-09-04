@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { GlassButton } from "@/components/primitives/GlassButton";
+import { GlassLink } from "@/components/primitives/GlassLink";
 
 export const metadata: Metadata = {
   title: "Styleguide",
@@ -16,6 +18,7 @@ const colours = [
   "--line",
   "--line-soft",
   "--glass",
+  "--glass-panel",
 ];
 
 const values = [
@@ -135,6 +138,20 @@ export default function Styleguide() {
             Focusable link
           </a>
         </p>
+      </Block>
+
+      <Block title="Liquid glass">
+        <p className="text-fg-62">
+          One skin for links and buttons (PRD V3): a blurred fill, a gradient
+          rim drawn by a masked pseudo-element, and a scale on hover and focus.
+        </p>
+        <div className="flex flex-wrap items-center gap-4">
+          <GlassLink href="#main">Small link</GlassLink>
+          <GlassButton>Small button</GlassButton>
+          <GlassLink href="#main" size="lg">
+            Large link
+          </GlassLink>
+        </div>
       </Block>
 
       <Block title="Background">

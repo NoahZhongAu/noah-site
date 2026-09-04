@@ -10,6 +10,19 @@
   --line: rgba(255, 255, 255, 0.18);
   --line-soft: rgba(255, 255, 255, 0.09);
   --glass: rgba(255, 255, 255, 0.045);
+  /* The phone menu opens over the headline, so its fill is --bg made nearly opaque rather than the button glass. */
+  --glass-panel: hsl(201 100% 13% / 0.92);
+
+  /* Liquid glass (hero-v3): the rim gradient runs bright, soft, clear, soft, bright. */
+  --glass-rim: rgba(255, 255, 255, 0.45);
+  --glass-rim-soft: rgba(255, 255, 255, 0.15);
+  --glass-highlight: rgba(255, 255, 255, 0.1);
+  --glass-blur: 4px;
+  --glass-rim-width: 1.4px;
+
+  /* Darkens the top and bottom of the cover video so the text reads (hero-v3, video-hero.md §3). */
+  --scrim-top: rgba(0, 20, 35, 0.35);
+  --scrim-bottom: rgba(0, 20, 35, 0.45);
 
   /* Families arrive from next/font as --font-*-src; these are the names components use. */
   --font-display: var(--font-display-src), Georgia, serif;
@@ -22,6 +35,10 @@
   --dur-draw: 900ms;
   --dur-era: 900ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Fade-rise (hero-v3, ADR 0004): each item rises this far over --dur-rise, --rise-stagger after the one before. */
+  --rise-distance: 24px;
+  --dur-rise: 800ms;
+  --rise-stagger: 200ms;
 
   --radius-input: 6px;
   --radius-card: 12px;

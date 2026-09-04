@@ -16,7 +16,7 @@ Every visual and structural requirement gathered so far, matched to the technolo
 | V1 | Full-screen cinematic illustrated video hero (night sky, figure at glowing laptop), looping, silent | Native `<video>` with `poster`, wrapped in a `HeroVideo` client component; poster via `next/image` | No library needed. The poster is what the browser measures for load speed; the video attaches only after the page is interactive, desktop only, and pauses off-screen. A video library would add weight for no gain. |
 | V2 | Serif display headline with muted emphasis words; clean sans body; mono for labels | `next/font/google` self-hosting Instrument Serif, Inter, JetBrains Mono | `next/font` downloads the fonts at build and serves them from your own domain with zero layout shift. No runtime request to Google. |
 | V3 | Liquid-glass nav pill and buttons (gradient rim, blurred fill) | Plain CSS utility class `.liquid-glass` using `backdrop-filter` and a masked `::before` gradient border | It is 15 lines of CSS. Any component library version of this would be heavier and less faithful to the reference. |
-| V4 | Fade-rise stagger on hero text and buttons | Framer Motion (`motion/react`) `variants` with `staggerChildren` | The one animation library in the project. It also handles V7, so it earns its place. |
+| V4 | Fade-rise stagger on hero text and buttons | CSS `@keyframes` with a per-item delay from a custom property (ADR 0004) | A JavaScript-driven entrance hides the cover text until hydration, which on a throttled phone puts LCP past 3s. CSS starts at first paint. Framer Motion stays for V7 only. |
 | V5 | Text scramble on the eyebrow line, plain white | Custom 40-line `useScramble` hook, `requestAnimationFrame` | Too small to justify a dependency. Renders the final string in HTML so screen readers and no-JS visitors see real text. |
 | V6 | Border draw on section rules (on scroll-in) and on CTA hover | Inline SVG `stroke-dasharray` and `stroke-dashoffset` animated with CSS; scroll trigger via `IntersectionObserver` | Runs on the compositor thread. No JS per frame. |
 | V7 | Project card expands in place, siblings dim, URL reflects the open card | Framer Motion `layout` and `layoutId` on the card; `useSearchParams` for `?project=slug` | `layoutId` is the cleanest implementation of a shared-element morph in React. URL state makes the expanded card linkable and gives the back button meaning. |
@@ -49,7 +49,7 @@ Every visual and structural requirement gathered so far, matched to the technolo
 | Framework | Next.js 16, App Router, TypeScript strict, pnpm |
 | Styling | Tailwind CSS v4, tokens as CSS custom properties |
 | Fonts | Instrument Serif, Inter, JetBrains Mono via `next/font` |
-| Motion | Framer Motion (`motion/react`) for reveals and the card morph; CSS for everything else |
+| Motion | Framer Motion (`motion/react`) for the card morph; CSS for everything else, including the cover fade-rise (ADR 0004) |
 | Content | Typed TS files validated by Zod at build |
 | Résumé | Static PDF maintained by hand in `public/resume/` |
 | Email | Resend behind `EmailSender` interface |

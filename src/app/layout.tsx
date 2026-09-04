@@ -8,23 +8,30 @@ import { EdgeGradientDefs } from "@/components/primitives/EdgeGradientDefs";
 import { resume } from "@content/index";
 import "@/styles/globals.css";
 
-// Instrument Serif ships weight 400 only (PLAN §6 item 30). Do not request others.
+// Every face here is preloaded with display swap, so text paints in the
+// fallback on the first frame and swaps in place. Only weight 400 is
+// referenced anywhere in the stylesheet; a weight that is declared but
+// unused still costs an @font-face block per subset and can win the swap
+// race for nothing. Instrument Serif ships 400 only (PLAN §6 item 30).
 const display = Instrument_Serif({
   weight: "400",
   style: ["normal", "italic"],
   subsets: ["latin"],
+  display: "swap",
   variable: "--font-display-src",
 });
 
 const body = Inter({
-  weight: ["400", "500"],
+  weight: "400",
   subsets: ["latin"],
+  display: "swap",
   variable: "--font-body-src",
 });
 
 const mono = JetBrains_Mono({
-  weight: ["400", "500"],
+  weight: "400",
   subsets: ["latin"],
+  display: "swap",
   variable: "--font-mono-src",
 });
 

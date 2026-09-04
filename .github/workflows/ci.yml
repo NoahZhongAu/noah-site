@@ -74,3 +74,5 @@ jobs:
           name: lighthouse-reports
           path: .lighthouseci
           retention-days: 7
+          # The directory is dot-prefixed, which upload-artifact treats as hidden and skips by default.
+          include-hidden-files: true
