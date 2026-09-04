@@ -21,6 +21,8 @@ const layers = [
 
 const eslintConfig = defineConfig([
   globalIgnores([
+    // Harness worktrees live under .claude/ and would otherwise be linted twice.
+    ".claude/**",
     ".next/**",
     "out/**",
     "build/**",

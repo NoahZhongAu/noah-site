@@ -4,13 +4,22 @@ import {
   formatDuration,
   sortEntriesAscending,
 } from "@/domain/dates";
-import { parseEmphasis } from "@/domain/emphasis";
+import { Cover } from "@/components/sections/Cover";
+import type { NavLink } from "@/components/composites/SiteNav";
 
-// Milestone 2: the parsed content as plain semantic HTML so the pipeline is
-// proven end to end. Milestones 3 to 6 replace each section with its real one.
+// Sections below the cover are still the milestone 2 placeholders: parsed
+// content as plain semantic HTML. Milestones 4 to 6 replace them.
 
 // Durations for open-ended entries are fixed at build time (PLAN §6 item 23).
 const now = new Date().toISOString().slice(0, 7);
+
+// PRD §3 anchors, in page order.
+const navLinks: NavLink[] = [
+  { href: "#story", label: "Story" },
+  { href: "#projects", label: "Projects" },
+  { href: "#skills", label: "Skills" },
+  { href: "#contact", label: "Contact" },
+];
 
 export default function Home() {
   const { person, entries, projects, skills } = resume;
@@ -18,25 +27,7 @@ export default function Home() {
 
   return (
     <>
-      <section
-        id="top"
-        className="flex min-h-svh flex-col justify-center gap-6 px-gutter"
-      >
-        <p className="text-mono-label">{person.eyebrow}</p>
-        <h1 className="text-headline">{person.name}</h1>
-        <p className="text-section">
-          {parseEmphasis(person.headline).map((segment, i) =>
-            segment.emphasis ? (
-              <em key={i} className="text-fg-62 not-italic">
-                {segment.text}
-              </em>
-            ) : (
-              <span key={i}>{segment.text}</span>
-            ),
-          )}
-        </p>
-        <p className="max-w-measure">{person.bio}</p>
-      </section>
+      <Cover person={person} navLinks={navLinks} />
 
       <section id="story" className="px-gutter py-section">
         <h2 className="text-section">Story</h2>
