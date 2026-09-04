@@ -192,7 +192,11 @@ test.describe("phone", () => {
     expect(metrics.sticky).toBe(0);
     expect(metrics.canvas).toBe(0);
     expect(metrics.cards).toBe(total);
-    expect(metrics.headers).toBeGreaterThan(0);
+    // Headers mount once a card is within a viewport; the first is, from the cover.
+    await expect
+      .poll(() => page.locator("#story .story-step img").count())
+      .toBeGreaterThan(0);
+    expect(metrics.headers).toBeGreaterThanOrEqual(0);
     // Only card headers, sized for the viewport: no 1920px layer.
     expect(requests.every((url) => !/w=1920|w=2048|w=3840/.test(url))).toBe(
       true,
@@ -254,6 +258,9 @@ test.describe("no JavaScript", () => {
     await expect(page.locator("#story")).toHaveAttribute("data-era", "1");
     await expect(page.locator("#story .story-step")).toHaveCount(total);
     await goToStep(page, 5).catch(() => undefined);
+    // Every card still has its header through the noscript fallback (phone width is where they show).
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.locator("#story .story-step img")).toHaveCount(total);
     expect((await titleStyles(page)).every((s) => s.opacity === "1")).toBe(
       true,
     );

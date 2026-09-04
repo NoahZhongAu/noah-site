@@ -324,8 +324,8 @@
 }
 
 .story-dot {
-  width: 6px;
-  height: 6px;
+  width: var(--rail-dot);
+  height: var(--rail-dot);
   border-radius: 50%;
   background: var(--fg-28);
   transition:
@@ -337,7 +337,7 @@
 .story-dot[data-active] {
   background: var(--fg);
   transform: scale(1.5);
-  box-shadow: 0 0 12px var(--glow);
+  box-shadow: 0 0 var(--rail-glow) var(--glow);
 }
 
 /* Bullet marker (reference.html): a short dash in --fg-62, never a disc. */

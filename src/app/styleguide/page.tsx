@@ -39,6 +39,8 @@ const values = [
   "--text-focus-blur",
   "--text-focus-rise",
   "--text-focus-stagger",
+  "--rail-dot",
+  "--rail-glow",
   "--ease-out",
   "--radius-input",
   "--radius-card",

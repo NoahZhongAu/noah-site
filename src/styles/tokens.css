@@ -30,6 +30,8 @@
   /* Story chrome: idle rail dot, the active dot's glow, and the one warm colour on the site, the fireflies (ADR 0005). */
   --fg-28: rgba(255, 255, 255, 0.28);
   --glow: rgba(255, 255, 255, 0.8);
+  --rail-dot: 6px;
+  --rail-glow: 12px;
   --firefly: #ffd27a;
 
   /* Families arrive from next/font as --font-*-src; these are the names components use. */

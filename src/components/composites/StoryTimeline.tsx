@@ -25,7 +25,9 @@ type Props = { steps: readonly StepData[]; eras: readonly Era[] };
  * header is in flow, the backdrop is display:none and the steps are cards.
  */
 export function StoryTimeline({ steps, eras }: Props) {
-  const { active, isShown, inStory, setRef } = useActiveStep(steps.length);
+  const { active, isShown, isNear, inStory, setRef } = useActiveStep(
+    steps.length,
+  );
   const era = eraForStep(eras, active + 1);
 
   useEffect(() => {
@@ -58,6 +60,7 @@ export function StoryTimeline({ steps, eras }: Props) {
             key={step.id}
             step={step}
             shown={isShown(index)}
+            near={isNear(index)}
             setRef={setRef(index)}
           />
         ))}

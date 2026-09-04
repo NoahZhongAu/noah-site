@@ -54,7 +54,11 @@ export function installIntersectionObserver() {
       }
     },
     count: () => observers.size,
+    /** The first non-zero threshold among observers of the target, so a hook with a near observer at 0 still reports its real one. */
     thresholdOf: (target: Element) =>
-      [...observers].find((o) => o.targets.has(target))?.options?.threshold,
+      [...observers]
+        .filter((o) => o.targets.has(target))
+        .map((o) => o.options?.threshold)
+        .find((t) => t !== undefined && Number(t) > 0),
   };
 }

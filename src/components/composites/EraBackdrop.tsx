@@ -14,7 +14,13 @@ export function EraBackdrop({ eras }: Props) {
     <div className="absolute inset-0" aria-hidden="true">
       {eras.map((era) => (
         <div key={era.id} className="era-layer" data-era-id={era.id}>
-          <Image src={era.image} alt="" fill sizes="100vw" />
+          <Image
+            src={era.image}
+            alt=""
+            fill
+            sizes="100vw"
+            fetchPriority="low"
+          />
         </div>
       ))}
       <div className="era-scrim" />
