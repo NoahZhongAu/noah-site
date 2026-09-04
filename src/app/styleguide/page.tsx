@@ -19,6 +19,9 @@ const colours = [
   "--line-soft",
   "--glass",
   "--glass-panel",
+  "--fg-28",
+  "--glow",
+  "--firefly",
 ];
 
 const values = [
@@ -27,6 +30,15 @@ const values = [
   "--dur-slow",
   "--dur-draw",
   "--dur-era",
+  "--focus-blur",
+  "--focus-scale",
+  "--focus-dim",
+  "--dur-push",
+  "--push-scale",
+  "--dur-text-focus",
+  "--text-focus-blur",
+  "--text-focus-rise",
+  "--text-focus-stagger",
   "--ease-out",
   "--radius-input",
   "--radius-card",

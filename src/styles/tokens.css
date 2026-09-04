@@ -23,6 +23,14 @@
   /* Darkens the top and bottom of the cover video so the text reads (hero-v3, video-hero.md §3). */
   --scrim-top: rgba(0, 20, 35, 0.35);
   --scrim-bottom: rgba(0, 20, 35, 0.45);
+  /* The story backdrop also darkens from the left, where the entry text sits (timeline-demo). */
+  --scrim-side: rgba(0, 20, 35, 0.82);
+  --scrim-side-mid: rgba(0, 20, 35, 0.45);
+
+  /* Story chrome: idle rail dot, the active dot's glow, and the one warm colour on the site, the fireflies (ADR 0005). */
+  --fg-28: rgba(255, 255, 255, 0.28);
+  --glow: rgba(255, 255, 255, 0.8);
+  --firefly: #ffd27a;
 
   /* Families arrive from next/font as --font-*-src; these are the names components use. */
   --font-display: var(--font-display-src), Georgia, serif;
@@ -33,7 +41,19 @@
   --dur-base: 320ms;
   --dur-slow: 620ms;
   --dur-draw: 900ms;
-  --dur-era: 900ms;
+  /* Focus pull between eras (ADR 0006): the outgoing layer blurs, dims and scales out while the incoming one resolves. */
+  --dur-era: 1100ms;
+  --focus-blur: 18px;
+  --focus-scale: 1.06;
+  --focus-dim: 0.55;
+  /* The active era keeps pushing in, slowly, for as long as it is on screen. */
+  --dur-push: 14s;
+  --push-scale: 1.07;
+  /* Entry text focuses in: date, title, organisation, bullets, each this long, this far apart. */
+  --dur-text-focus: 700ms;
+  --text-focus-blur: 8px;
+  --text-focus-rise: 8px;
+  --text-focus-stagger: 100ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   /* Fade-rise (hero-v3, ADR 0004): each item rises this far over --dur-rise, --rise-stagger after the one before. */
   --rise-distance: 24px;

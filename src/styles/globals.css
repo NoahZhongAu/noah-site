@@ -11,6 +11,8 @@
   --color-line-soft: var(--line-soft);
   --color-glass: var(--glass);
   --color-glass-panel: var(--glass-panel);
+  --color-fg-28: var(--fg-28);
+  --color-firefly: var(--firefly);
   --font-display: var(--font-display);
   --font-body: var(--font-body);
   --font-mono: var(--font-mono);
@@ -196,6 +198,160 @@
   animation-delay: calc(var(--rise-order, 0) * var(--rise-stagger));
 }
 
+/*
+ * Story timeline (PRD §4.2, ADR 0006). The section carries data-era; CSS
+ * reads it to pick the active layer. Everything here animates transform,
+ * opacity and filter only. Under 768px the backdrop is display:none
+ * (Tailwind on the element) so none of this runs and no layer image loads.
+ */
+.era-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: scale(var(--focus-scale));
+  filter: blur(var(--focus-blur)) brightness(var(--focus-dim));
+  transition:
+    opacity var(--dur-era) var(--ease-out),
+    filter var(--dur-era) var(--ease-out),
+    transform var(--dur-era) var(--ease-out);
+  will-change: opacity, transform, filter;
+}
+
+/* The push-in waits for the focus pull to land, then starts from scale(1) so the two never fight over transform. */
+@keyframes era-push {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(var(--push-scale));
+  }
+}
+
+[data-era="1"] .era-layer[data-era-id="1"],
+[data-era="2"] .era-layer[data-era-id="2"],
+[data-era="3"] .era-layer[data-era-id="3"],
+[data-era="4"] .era-layer[data-era-id="4"],
+[data-era="5"] .era-layer[data-era-id="5"],
+[data-era="6"] .era-layer[data-era-id="6"],
+[data-era="7"] .era-layer[data-era-id="7"] {
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0) brightness(1);
+  animation: era-push var(--dur-push) linear var(--dur-era) forwards;
+}
+
+.era-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      90deg,
+      var(--scrim-side) 0%,
+      var(--scrim-side-mid) 38%,
+      transparent 70%
+    ),
+    linear-gradient(
+      180deg,
+      var(--scrim-top),
+      transparent 30%,
+      transparent 70%,
+      var(--scrim-bottom)
+    );
+}
+
+/* Snap only while a step is on screen (StoryTimeline sets the attribute), so the cover and the sections after never snap. */
+@media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+  html[data-snap] {
+    scroll-snap-type: y mandatory;
+  }
+
+  .story-step {
+    scroll-snap-align: start;
+  }
+}
+
+/* Entry text focuses in once; a step keeps its final state after it has been shown. Desktop only: cards are static. */
+@media (min-width: 768px) {
+  .story-card > * {
+    opacity: 0;
+    filter: blur(var(--text-focus-blur));
+    transform: translateY(var(--text-focus-rise));
+    transition:
+      opacity var(--dur-text-focus) var(--ease-out),
+      filter var(--dur-text-focus) var(--ease-out),
+      transform var(--dur-text-focus) var(--ease-out);
+  }
+
+  .story-step[data-shown] .story-card > * {
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+  }
+
+  .story-step[data-shown] .story-card > :nth-child(2) {
+    transition-delay: var(--text-focus-stagger);
+  }
+
+  .story-step[data-shown] .story-card > :nth-child(3) {
+    transition-delay: calc(2 * var(--text-focus-stagger));
+  }
+
+  .story-step[data-shown] .story-card > :nth-child(4) {
+    transition-delay: calc(3 * var(--text-focus-stagger));
+  }
+}
+
+.story-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg-28);
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    background var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+
+.story-dot[data-active] {
+  background: var(--fg);
+  transform: scale(1.5);
+  box-shadow: 0 0 12px var(--glow);
+}
+
+/* Bullet marker (reference.html): a short dash in --fg-62, never a disc. */
+.bullets > li {
+  position: relative;
+  padding-left: 20px;
+}
+
+.bullets > li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.75em;
+  width: 9px;
+  height: 1px;
+  background: var(--fg-62);
+}
+
+/* Section rule (PRD V6, reference.html): a 1px line that draws itself once when it enters view. */
+.section-rule line {
+  stroke: url(#edge);
+  stroke-width: 1;
+  stroke-dasharray: 1400;
+  stroke-dashoffset: 1400;
+}
+
+.section-rule[data-drawn] line {
+  animation: draw var(--dur-draw) var(--ease-out) forwards;
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
 /* Reduced motion shows the finished state: every animation and transition completes at once. */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -208,6 +364,26 @@
   }
 
   .fade-rise {
+    animation: none;
+  }
+
+  /* Story: no blur, no push-in, no stagger. The era still switches, by instant opacity. */
+  .era-layer {
+    filter: none;
+    transform: none;
+    animation: none;
+    transition: none;
+  }
+
+  .story-card > * {
+    opacity: 1;
+    filter: none;
+    transform: none;
+    transition: none;
+  }
+
+  .section-rule line {
+    stroke-dashoffset: 0;
     animation: none;
   }
 }
