@@ -1,5 +1,16 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {/* config options here */};
+const nextConfig: NextConfig = {
+  // PRD §6: a short shareable link that survives replacing the file.
+  redirects() {
+    return Promise.resolve([
+      {
+        source: "/resume",
+        destination: "/resume/noah-zhong-resume.pdf",
+        permanent: true,
+      },
+    ]);
+  },
+};
 
 export default nextConfig;

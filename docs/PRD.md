@@ -168,7 +168,7 @@ Name, year, "Built with Next.js, deployed on Vercel", link to the repository, li
 
 ```ts
 // content/schema.ts (Zod)
-Person      { name, headline, location, email, phone, links{github, linkedin}, bio, availability }
+Person      { name, role, eyebrow, headline, location, email, links{github, linkedin}, bio, availability }   // ADR 0003
 Entry       { id, kind: "role"|"education"|"milestone", title, org, location,
               start: YYYY-MM, end: YYYY-MM | "present", bullets: string[1..5],
               stack?: string[] }
