@@ -1,14 +1,10 @@
 import { resume } from "@content/index";
-import {
-  formatDateRange,
-  formatDuration,
-  sortEntriesAscending,
-} from "@/domain/dates";
 import { Cover } from "@/components/sections/Cover";
+import { Story } from "@/components/sections/Story";
 import type { NavLink } from "@/components/composites/SiteNav";
 
-// Sections below the cover are still the milestone 2 placeholders: parsed
-// content as plain semantic HTML. Milestones 4 to 6 replace them.
+// Sections below the story are still the milestone 2 placeholders: parsed
+// content as plain semantic HTML. Milestones 5 and 6 replace them.
 
 // Durations for open-ended entries are fixed at build time (PLAN §6 item 23).
 const now = new Date().toISOString().slice(0, 7);
@@ -22,37 +18,16 @@ const navLinks: NavLink[] = [
 ];
 
 export default function Home() {
-  const { person, entries, projects, skills } = resume;
-  const steps = sortEntriesAscending(entries);
+  const { person, entries, eras, projects, skills } = resume;
 
   return (
     <>
       <Cover person={person} navLinks={navLinks} />
 
-      <section id="story" className="px-gutter py-section">
-        <h2 className="text-section">Story</h2>
-        <ol className="mt-12 grid gap-12">
-          {steps.map((entry) => (
-            <li key={entry.id} className="max-w-[60ch]">
-              <p className="text-mono-label text-fg-62">
-                {formatDateRange(entry.start, entry.end)} ·{" "}
-                {formatDuration(entry.start, entry.end, now)}
-              </p>
-              <h3 className="font-display text-3xl">{entry.title}</h3>
-              <p className="text-fg-80">
-                {entry.org}, {entry.location}
-              </p>
-              <ul className="mt-4 list-disc pl-5">
-                {entry.bullets.map((bullet) => (
-                  <li key={bullet}>{bullet}</li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ol>
-      </section>
+      <Story entries={entries} eras={eras} now={now} />
 
-      <section id="projects" className="px-gutter py-section">
+      {/* snap-start: the first snap point after the story, so a wheel gesture out of step 7 lands here (ADR 0006). */}
+      <section id="projects" className="snap-start px-gutter py-section">
         <h2 className="text-section">Projects</h2>
         <ul className="mt-12 grid gap-8">
           {projects.map((project) => (

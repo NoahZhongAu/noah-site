@@ -69,9 +69,13 @@
 
   /* Body copy measure; PRD §4.1 caps the bio at 56 characters per line. */
   --measure: 56ch;
+  /* A timeline step's text is a little wider (PRD §4.2), and starts past the rail. */
+  --measure-step: 60ch;
+  --gutter-story: clamp(56px, 9vw, 140px);
 
   --text-headline: clamp(3rem, 8.5vw, 6rem);
   --text-section: clamp(2.5rem, 6vw, 4.5rem);
+  --text-step: clamp(2rem, 4.6vw, 3.4rem);
   --text-body: clamp(17px, 1.15vw, 20px);
   --text-mono: 12px;
   --text-mono-lg: 13px;

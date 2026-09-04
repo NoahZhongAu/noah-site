@@ -23,6 +23,8 @@
   --spacing-section: var(--space-section);
   --spacing-gutter: var(--gutter);
   --container-measure: var(--measure);
+  --container-measure-step: var(--measure-step);
+  --spacing-gutter-story: var(--gutter-story);
 }
 
 @layer base {
@@ -75,6 +77,14 @@
   font-weight: 400;
   line-height: 0.95;
   letter-spacing: -0.03em;
+}
+
+@utility text-step-title {
+  font-family: var(--font-display);
+  font-size: var(--text-step);
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
 }
 
 @utility text-mono-label {
@@ -217,6 +227,11 @@
   will-change: opacity, transform, filter;
 }
 
+/* The figure sits right of centre in every illustration (era-illustrations-guide); the text is on the left. */
+.era-layer > img {
+  object-position: 60% 50%;
+}
+
 /* The push-in waits for the focus pull to land, then starts from scale(1) so the two never fight over transform. */
 @keyframes era-push {
   from {
@@ -265,27 +280,34 @@
     scroll-snap-type: y mandatory;
   }
 
-  .story-step {
+  /* The steps, plus the cover before and the section after, so a wheel gesture out of the story lands somewhere sane. */
+  .story-step,
+  .snap-start {
     scroll-snap-align: start;
   }
 }
 
-/* Entry text focuses in once; a step keeps its final state after it has been shown. Desktop only: cards are static. */
+/*
+ * Entry text focuses in once; a step keeps its final state after it has been
+ * shown. Desktop only: cards are static. The transition sits on the shown
+ * state only, so the entrance animates and hiding is instant: the server
+ * renders every step shown and hydration hides the off-screen ones.
+ */
 @media (min-width: 768px) {
   .story-card > * {
     opacity: 0;
     filter: blur(var(--text-focus-blur));
     transform: translateY(var(--text-focus-rise));
-    transition:
-      opacity var(--dur-text-focus) var(--ease-out),
-      filter var(--dur-text-focus) var(--ease-out),
-      transform var(--dur-text-focus) var(--ease-out);
   }
 
   .story-step[data-shown] .story-card > * {
     opacity: 1;
     filter: blur(0);
     transform: none;
+    transition:
+      opacity var(--dur-text-focus) var(--ease-out),
+      filter var(--dur-text-focus) var(--ease-out),
+      transform var(--dur-text-focus) var(--ease-out);
   }
 
   .story-step[data-shown] .story-card > :nth-child(2) {
