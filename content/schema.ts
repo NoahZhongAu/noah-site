@@ -66,7 +66,7 @@ export const SkillGroupSchema = z.object({
 
 export const EraSchema = z
   .object({
-    id: z.number().int().min(1).max(5),
+    id: z.number().int().min(1).max(7),
     image: z.string().startsWith("/eras/"),
     alt: nonEmpty,
     fromStep: z.number().int().min(1),
@@ -83,7 +83,7 @@ export const ResumeSchema = z
     entries: z.array(EntrySchema).min(1),
     projects: z.array(ProjectSchema).min(1),
     skills: z.array(SkillGroupSchema).length(5),
-    eras: z.array(EraSchema).length(5),
+    eras: z.array(EraSchema).length(7),
   })
   .superRefine((resume, ctx) => {
     reportDuplicates(
