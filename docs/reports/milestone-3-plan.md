@@ -28,7 +28,7 @@ E2E (Playwright, `tests/e2e/cover.spec.ts`): one `h1` with the headline; eyebrow
 
 ## Decisions taken without asking (autopilot)
 
-- Fade-rise stays on Framer Motion as PRD V4 says, even though hero-v3 does it in CSS. The no-JS gate is met by a `<noscript>` style override and the reduced-motion pre-hydration paint by a CSS override, both on the `.fade-rise` class.
+- Fade-rise stays on Framer Motion as PRD V4 says, even though hero-v3 does it in CSS. The no-JS gate is met by a `<noscript>` style override and the reduced-motion pre-hydration paint by a CSS override, both on the `.fade-rise` class. **Superseded the same day by ADR 0004:** the Framer version held the cover text at opacity 0 until hydration and put Lighthouse mobile at 0.94 with LCP at 3.1s, so fade-rise shipped as the reference's CSS keyframes, `FadeRiseGroup` and the `<noscript>` override were removed, and `motion` was taken out of `package.json` until milestone 5 needs it for the card morph.
 - The reduced-motion check is a Playwright assertion on computed styles, not a pixel screenshot. Screenshot baselines are platform-specific and a macOS baseline would fail on the Linux CI runner. PRD §10's screenshot suite is milestone 7 work; the decision on Linux baselines belongs there.
 - `MonoLabel` is deferred: the eyebrow is its only use this milestone and the `text-mono-label` utility already exists. Rule of three.
 - `ResumeDownloadLink` has no `appearance` prop yet. Glass is the only appearance until milestone 6.

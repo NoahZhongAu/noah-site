@@ -10,6 +10,7 @@
   --color-line: var(--line);
   --color-line-soft: var(--line-soft);
   --color-glass: var(--glass);
+  --color-glass-panel: var(--glass-panel);
   --font-display: var(--font-display);
   --font-body: var(--font-body);
   --font-mono: var(--font-mono);

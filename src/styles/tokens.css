@@ -10,6 +10,8 @@
   --line: rgba(255, 255, 255, 0.18);
   --line-soft: rgba(255, 255, 255, 0.09);
   --glass: rgba(255, 255, 255, 0.045);
+  /* The phone menu opens over the headline, so its fill is --bg made nearly opaque rather than the button glass. */
+  --glass-panel: hsl(201 100% 13% / 0.92);
 
   /* Liquid glass (hero-v3): the rim gradient runs bright, soft, clear, soft, bright. */
   --glass-rim: rgba(255, 255, 255, 0.45);

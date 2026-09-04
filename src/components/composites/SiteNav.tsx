@@ -106,7 +106,7 @@ export function SiteNav({ name, links }: Props) {
       <div
         id={menuId}
         hidden={!open}
-        className="liquid-glass absolute inset-x-6 top-full z-10 rounded-card p-2 md:hidden"
+        className="liquid-glass absolute inset-x-6 top-full z-10 rounded-card bg-glass-panel p-2 md:hidden"
       >
         <ul className="grid gap-1">
           {links.map((link) => (

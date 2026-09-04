@@ -171,6 +171,10 @@ test.describe("phone", () => {
     await page.keyboard.press("Escape");
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
     await expect(toggle).toBeFocused();
+
+    // A real tap as well: the poster layer beneath must never intercept it.
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
   });
 });
 

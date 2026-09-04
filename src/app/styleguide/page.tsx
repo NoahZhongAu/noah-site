@@ -18,6 +18,7 @@ const colours = [
   "--line",
   "--line-soft",
   "--glass",
+  "--glass-panel",
 ];
 
 const values = [
