@@ -21,12 +21,7 @@
       "WebFetch(domain:vercel.com)",
       "WebFetch(domain:github.com)"
     ],
-    "ask": [
-      "Bash(git push *)",
-      "Bash(vercel --prod *)",
-      "Bash(pnpm add *)",
-      "Bash(pnpm remove *)"
-    ],
+    "ask": ["Bash(git push *)", "Bash(vercel --prod *)"],
     "deny": [
       "Bash(rm -rf *)",
       "Bash(sudo *)",
