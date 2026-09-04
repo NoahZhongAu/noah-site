@@ -1,7 +1,7 @@
 # Noah Zhong — Personal Résumé Site
 ## Requirements-to-Stack Map and Product Requirements Document
 
-Version 1.0 · September 2026
+Version 1.1 · September 2026 (1.0 targeted Next.js 15; bumped to Next.js 16 on 2026-09-04, see docs/PLAN.md §1)
 
 ---
 
@@ -29,10 +29,10 @@ Every visual and structural requirement gathered so far, matched to the technolo
 
 | # | Requirement | Technology | Why this, and not something else |
 |---|---|---|---|
-| S1 | Single page: cover, story timeline, projects, skills, contact; nav anchors to each | Next.js 15 App Router, one route `/` statically generated; sections as server components with client islands for motion | The whole page is prebuilt HTML at deploy time. Only the interactive bits ship JavaScript. Fastest possible first paint. |
+| S1 | Single page: cover, story timeline, projects, skills, contact; nav anchors to each | Next.js 16 App Router, one route `/` statically generated; sections as server components with client islands for motion | The whole page is prebuilt HTML at deploy time. Only the interactive bits ship JavaScript. Fastest possible first paint. |
 | S2 | Cover with name, role, one-liner, "Know more" scroll button, section nav | Section component; `scrollIntoView` with `behavior: smooth` respecting reduced motion | Nothing to add. |
-| S3 | Story timeline runs oldest to newest, education included as milestones | Content-driven: every entry (job, degree, milestone) is one typed record with `kind`, `start`, `end`; the timeline sorts ascending, the PDF sorts descending | Same data, two orderings. One source of truth, two outputs. |
-| S4 | Résumé content lives in one place and both web and PDF read from it | `content/resume.ts` typed with Zod schemas in `content/schema.ts`; validated at build, build fails on invalid content | Editing your résumé means editing one file and never touching a component. |
+| S3 | Story timeline runs oldest to newest, education included as milestones | Content-driven: every entry (job, degree, milestone) is one typed record with `kind`, `start`, `end`; the timeline sorts ascending. The hand-maintained PDF is reverse-chronological by convention and is not generated from this data. | One typed record per entry, sorted by a domain function. |
+| S4 | Web résumé content lives in one place | `content/resume.ts` typed with Zod schemas in `content/schema.ts`; validated at build, build fails on invalid content. The PDF is a separate, hand-maintained file that the web never reads (see §6). | Editing the web résumé means editing one file and never touching a component. |
 | S5 | Visitor can download Noah's official PDF résumé | Static file at `public/resume/noah-zhong-resume.pdf`, served by Next.js as a plain asset; a `/resume` redirect in `next.config` for a clean shareable link | Noah maintains the résumé himself. A static file has no runtime, no cold start, and nothing to break. |
 | S6 | Contact form with real server-side validation, spam protection, and email delivery | Next.js Route Handler `app/api/contact/route.ts`; Zod schema shared with the client; honeypot field; Cloudflare Turnstile; Resend behind an `EmailSender` interface | Turnstile is free and needs no database, which rules out an IP rate limiter that would need Redis. Resend's free tier is 3,000 emails a month. The interface means Resend can be swapped in one file. |
 | S7 | Download count for the résumé | `@vercel/analytics` custom event `resume_download` fired from the download link's click handler | Counting without a database. Vercel Analytics is free on Hobby. |
@@ -46,7 +46,7 @@ Every visual and structural requirement gathered so far, matched to the technolo
 
 | Layer | Choice |
 |---|---|
-| Framework | Next.js 15, App Router, TypeScript strict, pnpm |
+| Framework | Next.js 16, App Router, TypeScript strict, pnpm |
 | Styling | Tailwind CSS v4, tokens as CSS custom properties |
 | Fonts | Instrument Serif, Inter, JetBrains Mono via `next/font` |
 | Motion | Framer Motion (`motion/react`) for reveals and the card morph; CSS for everything else |
@@ -111,7 +111,7 @@ Supporting routes:
 
 Full viewport height. Background is the illustrated night-scene video (V1) with poster fallback. Content, top to bottom:
 
-- Navigation row: name at left as the logo; liquid-glass pill with Story, Projects, Skills, Contact; liquid-glass "Download résumé" button at right. Hamburger below 768px.
+- Navigation row: name at left as the logo; liquid-glass pill with Story, Projects, Skills, Contact; liquid-glass "Download résumé" button at right. Hamburger below 768px. The nav is in-flow inside the cover only and does not persist while scrolling; the timeline rail and the footer links cover navigation elsewhere.
 - Eyebrow line in mono, white, text-scramble on load: `MELBOURNE · AI DEPLOYMENT ENGINEER · OPEN TO 2027 GRADUATE ROLES`
 - Headline in Instrument Serif, two lines, emphasis words in muted grey: *AI systems, **deployed** where the work **actually happens.***
 - One-paragraph bio, max 56 characters per line.
@@ -122,19 +122,19 @@ Full viewport height. Background is the illustrated night-scene video (V1) with 
 
 Purpose: tell the career as a forward-moving story and show breadth.
 
-**Data:** every entry in `content/resume.ts` with `kind: "role" | "education" | "milestone"`, sorted ascending by start date. Expected entries: XJTLU 2022, Suzhou tutoring and debate coaching 2024, CUHK-Shenzhen internship 2024, Monash 2025, Airbotix 2026, AIDC 2026. Six to eight steps.
+**Data:** every entry in `content/resume.ts` with `kind: "role" | "education" | "milestone"`, sorted ascending by start date. Expected entries: XJTLU 2022, Suzhou tutoring and debate coaching 2024, CUHK-Shenzhen internship 2024, Monash 2025, Airbotix 2026, AIDC 2026. Six steps at launch.
 
-**Layout, desktop (768px and up):** a tall section whose height is `steps × 100svh`. A `position: sticky; top: 0; height: 100svh` backdrop holds five era illustrations stacked absolutely. Each step is a `100svh` block containing one entry, vertically centred, left-aligned, max width 60ch: date range and duration in mono, role or degree title in serif, organisation, three to five bullets. A thin vertical rail at the left edge shows all steps as dots, the active one filled.
+**Layout, desktop (768px and up):** a tall section whose height is `steps × 100svh`. A `position: sticky; top: 0; height: 100svh` backdrop holds five era illustrations stacked absolutely. Each step is a `100svh` block containing one entry, vertically centred, left-aligned, max width 60ch: date range and duration in mono, role or degree title in serif, organisation, one to five bullets. A thin vertical rail at the left edge shows all steps as dots, the active one filled.
 
 **Era backdrop:** five illustrations mapped to step ranges. Era boundaries are configured in content, not hardcoded. Crossfade by opacity over 900ms when the active step changes. Every figure in every illustration is seen from behind or in silhouette, matching the hero.
 
-| Era | Subject | Default step range (of 7) |
+| Era | Subject | Step range (of 6, set in content) |
 |---|---|---|
 | 1 | Room of human computers at desks with adding machines, 1940s | 1 to 2 |
 | 2 | Turing-era machine room, tape and relays | 3 |
 | 3 | Mainframe hall, von Neumann era, reel-to-reel and consoles | 4 |
 | 4 | Personal computing and the early network, CRTs and cables | 5 |
-| 5 | Present-day: neural-network visualisation, glowing nodes, the same figure at the laptop from the hero | 6 to 7 |
+| 5 | Present-day: neural-network visualisation, glowing nodes, the same figure at the laptop from the hero | 6 |
 
 **Layout, mobile (under 768px):** no sticky, no pinning. Entries stack as cards; each card's header is a 16:9 crop of its era illustration. Same content.
 
@@ -142,7 +142,7 @@ Purpose: tell the career as a forward-moving story and show breadth.
 
 ### 4.3 Projects
 
-Grid of cards, `auto-fit, minmax(340px, 1fr)`. Each card: category tag in mono, title in serif, stack line in mono, one-sentence pitch, "Click to expand" hint. Cards are `<button>` elements.
+Grid of cards, `auto-fit, minmax(340px, 1fr)`. Each card: category tag in mono, title in serif, stack line in mono, one-sentence pitch, "Click to expand" hint. Each card is an `<article>` whose header is a `<button>` trigger with `aria-expanded`; the detail panel and its links live inside the article, never inside the button.
 
 Clicking a card sets `?project=slug`. The card animates with `layoutId` to span the full grid width and reveals its detail list and links (live, repo). Siblings fade to 34% opacity. Escape or a second click closes and clears the query. Focus moves into the expanded card on open and back to the trigger on close. Reduced motion: instant open, no animation.
 
@@ -170,7 +170,7 @@ Name, year, "Built with Next.js, deployed on Vercel", link to the repository, li
 // content/schema.ts (Zod)
 Person      { name, headline, location, email, phone, links{github, linkedin}, bio, availability }
 Entry       { id, kind: "role"|"education"|"milestone", title, org, location,
-              start: YYYY-MM, end: YYYY-MM | "present", bullets: string[3..6],
+              start: YYYY-MM, end: YYYY-MM | "present", bullets: string[1..5],
               stack?: string[] }
 Project     { slug, category, title, stack: string[], pitch, details: string[], links{live?, repo?} }
 SkillGroup  { label, items: string[] }
@@ -201,7 +201,7 @@ name: 2..80 chars · email: valid · message: 20..2000 chars
 website: must be empty (honeypot) · turnstileToken: string
 ```
 
-Sequence: validate body → reject if honeypot filled (return 200 silently, log) → verify Turnstile token server-side → send notification email to `CONTACT_TO_EMAIL` with reply-to set to the visitor → return `{ ok: true }`.
+Sequence: read the honeypot field before any validation; if it is filled, log and return 200 silently → validate body → verify Turnstile token server-side → send notification email to `CONTACT_TO_EMAIL` with reply-to set to the visitor → return `{ ok: true }`. The honeypot check runs first so a bot never receives a 400 that names the field.
 
 Errors: validation returns 400 with field errors; Turnstile failure returns 403 with a plain message; provider failure returns 502 with "Could not send right now, please email me directly at …" and logs the provider error server-side. Provider errors are never returned to the client.
 
@@ -224,7 +224,7 @@ interface EmailSender {
 
 ## 8. Visual system
 
-Full specification lives in the reference files already produced: `hero-v3.html` for the cover, `reference.html` for typography scale, section rhythm, and the border-draw and card mechanics. This section lists only what the PRD fixes.
+Full specification lives in the reference files already produced: `hero-v3.html` and `video-hero.md` for the cover, `reference.html` for typography scale, section rhythm, and the border-draw and card mechanics. This section lists only what the PRD fixes.
 
 **Tokens** (one file, `src/styles/tokens.css`, consumed by Tailwind `@theme`):
 
@@ -239,6 +239,8 @@ Full specification lives in the reference files already produced: `hero-v3.html`
 radius: 6px inputs, 12px cards, 999px pills
 spacing: 4px scale, section rhythm 96px mobile / 160px desktop
 ```
+
+**No accent colour.** The palette is white on `--bg`. The border-draw stroke is `--fg` fading to transparent at both ends; bullet markers are `--fg-62`. The violet and teal in `reference.html` do not apply to this project.
 
 **Type scale:** headline `clamp(3rem, 8.5vw, 6rem)` serif 400, `line-height .95`, `letter-spacing -.03em`; section titles `clamp(2.5rem, 6vw, 4.5rem)`; body `clamp(17px, 1.15vw, 20px)`; mono labels 12 to 13px, `.02em` to `.18em` tracking.
 
@@ -298,7 +300,7 @@ All enforced in CI on every pull request. A failing gate blocks merge.
 - Title, description, canonical, Open Graph and Twitter tags, generated OG image, sitemap, robots, JSON-LD `Person` with `jobTitle`, `alumniOf`, `worksFor`, `knowsAbout`, `sameAs`.
 
 **Security**
-- All input validated server-side. Honeypot and Turnstile on the form. Security headers and a CSP via `next.config`. No secrets in the client bundle. `pnpm audit` clean of high severity.
+- All input validated server-side. Honeypot and Turnstile on the form. Static security headers and CSP via `headers()` in `next.config`, with `'unsafe-inline'` where the static page requires it (ADR 0002). No secrets in the client bundle. `pnpm audit` clean of high severity.
 
 **Correctness**
 - TypeScript strict with `noUncheckedIndexedAccess`; zero `any`; zero lint warnings; Prettier clean.
@@ -330,5 +332,5 @@ Until the illustrations arrive, the timeline uses five flat gradient placeholder
 
 ## 13. Open questions
 
-1. Confirm oldest-first ordering on the web timeline.
-2. Three eras first, or all five? The era-to-step mapping is content, so this can change without code.
+1. Oldest-first ordering on the web timeline: confirmed 2026-09-04.
+2. All five eras from the start, with gradient placeholders until the illustrations arrive. Mapping for six entries: era 1 steps 1 to 2, era 2 step 3, era 3 step 4, era 4 step 5, era 5 step 6. It lives in content and can change without code.

@@ -11,8 +11,9 @@
   --line:rgba(255,255,255,.16);
   --line-soft:rgba(255,255,255,.09);
   --glass:rgba(255,255,255,.045);
-  --violet:#A78BFA;
-  --teal:#5EEAD4;
+  /* 2026-09-04: violet and teal removed for this project; accents are white only (PRD §8) */
+  --accent:#FFFFFF;
+  --accent-soft:rgba(255,255,255,.62);
   --display:"Bricolage Grotesque","Segoe UI",sans-serif;
   --body:"Instrument Sans",system-ui,sans-serif;
   --mono:"JetBrains Mono",ui-monospace,monospace;
@@ -143,7 +144,7 @@ main,header.nav{position:relative;z-index:4}
   transition:background .25s,border-color .25s;
 }
 .btn:hover,.btn:focus-visible{background:rgba(255,255,255,.06);border-color:transparent}
-.btn:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .btn svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
 .btn rect{
   fill:none;stroke:url(#edge);stroke-width:1.5;
@@ -203,7 +204,7 @@ main,header.nav{position:relative;z-index:4}
 .job ul{margin:0;padding:0;list-style:none;display:grid;gap:clamp(14px,1.6vw,20px)}
 .job li{position:relative;padding-left:26px;color:var(--ink-2);max-width:70ch}
 .job li::before{content:"";position:absolute;left:0;top:.62em;width:10px;height:1px;
-  background:var(--violet)}
+  background:var(--accent-soft)}
 .job li b{color:var(--ink);font-weight:600}
 
 /* ---- projects: MOTION 4, card expands in place ---- */
@@ -220,12 +221,12 @@ main,header.nav{position:relative;z-index:4}
   position:relative;overflow:hidden;
 }
 .card::before{content:"";position:absolute;inset:0 0 auto;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(167,139,250,.8),transparent)}
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent)}
 .card:hover,.card:focus-visible{border-color:var(--line);background:rgba(255,255,255,.07)}
-.card:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+.card:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 
 .card-tag{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
-  color:var(--teal);margin:0}
+  color:var(--accent-soft);margin:0}
 .card-title{font-family:var(--display);font-weight:700;
   font-size:clamp(1.4rem,2.1vw,1.9rem);line-height:1.15;letter-spacing:-.025em;margin:0}
 .card-sub{margin:0;color:var(--ink-3);font-family:var(--mono);font-size:12.5px;letter-spacing:.04em}
@@ -234,7 +235,7 @@ main,header.nav{position:relative;z-index:4}
 .card-more ul{margin:0;padding:0;list-style:none;display:grid;gap:12px}
 .card-more li{position:relative;padding-left:24px;color:var(--ink-2);max-width:68ch}
 .card-more li::before{content:"";position:absolute;left:0;top:.62em;width:9px;height:1px;
-  background:var(--teal)}
+  background:var(--accent-soft)}
 .card-hint{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
   color:var(--ink-3);margin-top:auto;padding-top:6px}
 
@@ -268,10 +269,10 @@ main,header.nav{position:relative;z-index:4}
 
 <svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs>
   <linearGradient id="edge" x1="0" y1="0" x2="1" y2="0">
-    <stop offset="0%" stop-color="rgba(167,139,250,0)"/>
-    <stop offset="20%" stop-color="#A78BFA"/>
-    <stop offset="80%" stop-color="#5EEAD4"/>
-    <stop offset="100%" stop-color="rgba(94,234,212,0)"/>
+    <stop offset="0%" stop-color="rgba(255,255,255,0)"/>
+    <stop offset="20%" stop-color="#FFFFFF"/>
+    <stop offset="80%" stop-color="#FFFFFF"/>
+    <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
   </linearGradient>
 </defs></svg>
 

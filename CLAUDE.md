@@ -1,6 +1,6 @@
 # Noah Zhong résumé site
 
-Single-page Next.js 15 (App Router, TypeScript strict) personal site, deployed on Vercel Hobby from GitHub.
+Single-page Next.js 16 (App Router, TypeScript strict) personal site, deployed on Vercel Hobby from GitHub.
 
 **The PRD is the source of truth: @docs/PRD.md.** Read it before any non-trivial work. If the code and the PRD disagree, say so and ask. Never silently pick one.
 
@@ -26,7 +26,7 @@ src/app/          routes, layout, one API route  → may import all of the above
 ## Rules that are not negotiable
 
 - Résumé text never lives in a component. It comes from `content/` only.
-- No hex colours or pixel literals in components. Tokens live in `src/styles/tokens.css`.
+- No hex colours or pixel literals in components. Tokens live in `src/styles/tokens.css`. No accent colour: white on `--bg` only. Border-draw stroke is `--fg`, bullet markers `--fg-62`.
 - Motion is exactly the inventory in PRD §8. Animate `transform`, `opacity`, `filter` only. Every entrance fires once. `prefers-reduced-motion` shows the finished state, not a broken one.
 - **No scroll event listeners.** Use `IntersectionObserver` or CSS.
 - `EmailSender` is the only abstraction. No DI containers, no repositories over static content, no state-management library, no barrel files, no second animation library.
@@ -49,7 +49,7 @@ src/app/          routes, layout, one API route  → may import all of the above
 Working reference implementations live in `docs/references/`. Read the relevant one before building its section; where a reference and the PRD disagree, the PRD wins on scope and the reference wins on visual detail.
 
 - `hero-v3.html` — the cover: liquid glass, serif headline, fade-rise
-- `reference.html` — type scale, section rhythm, border draw, card expand
+- `reference.html` — type scale, section rhythm, border draw, card expand (its aurora and constellation are out of scope)
 - `video-hero.md` — the video component, poster-first loading
 - `era-illustrations-guide.md` — what the five timeline images are
 

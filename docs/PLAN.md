@@ -1,0 +1,551 @@
+# Implementation plan
+
+Written 2026-09-04 from CLAUDE.md, docs/PRD.md v1.1, every file in docs/references/, and the Next.js 16.3.4 docs bundled in `node_modules/next/dist/docs/`. No application code exists yet; the repo is the untouched `create-next-app` scaffold plus tooling.
+
+**Status: decisions resolved 2026-09-04, except §6 item 1 (JS budget), which is still open.** The PRD, CLAUDE.md and `reference.html` were updated to match; `hero-prompt-v2.md` was deleted; ADR 0002 records the CSP decision. Milestone 1 can start once item 1 has a number.
+
+Read order: §1 (what Next.js 16 changed), §6 (PRD issues and how each was resolved), then §5 (milestones). §2 to §4 are the reference material the milestones point at.
+
+---
+
+## 1. Next.js 16 versus the PRD
+
+The PRD was written for Next.js 15. The scaffold installed 16.3.4 with React 19.2.8 and Tailwind 4.3.3. Verified against the bundled docs and, where marked, by running the scaffold.
+
+| # | Change in Next.js 16 | Where the PRD relies on the old behaviour | What we do |
+|---|---|---|---|
+| N1 | `useSearchParams` in a prerendered route client-renders everything up to the nearest `<Suspense>`; the build errors without a boundary. | V7, §4.3: `?project=slug` via `useSearchParams`. | `ProjectGrid` is wrapped in `<Suspense>` inside the `Projects` section. The fallback renders the identical closed grid so there is no layout shift. |
+| N2 | `next/image` `priority` is deprecated in favour of `preload`. `images.qualities` now defaults to `[75]`; any other `quality` is coerced to the nearest configured value. | V1: poster via `next/image`. §12: era images at a tight weight. | Poster uses `preload`. If era images need `quality={60}`, `images.qualities: [60, 75]` goes in `next.config.ts` first. |
+| N3 | `middleware.ts` is renamed `proxy.ts`, Node runtime only. A nonce-based CSP requires dynamic rendering. | §10 Security: "CSP via `next.config`". S1: page statically generated. | Static CSP through `headers()` in `next.config.ts`, recorded in ADR 0002. Because the page is static, nonces are impossible without giving up prerendering, so `style-src` and `script-src` carry `'unsafe-inline'`. No `proxy.ts`. |
+| N4 | `next lint` is removed and `next build` no longer lints. The `eslint` key in `next.config` is gone. Flat config only. | §10 "zero lint warnings"; A3 lists typescript-eslint type-checked, jsx-a11y, boundaries. | `pnpm lint` calls ESLint directly (already the case). All plugins are added to `eslint.config.mjs` as flat configs in Milestone 1. |
+| N5 | `params`, `searchParams`, `cookies`, `headers` are async only. `opengraph-image` and `sitemap` receive promises. | §3 supporting routes. | We never read `searchParams` on the server. `opengraph-image.tsx` and `sitemap.ts` at the root take no params, so nothing to await. |
+| N6 | Turbopack is the default for `dev` and `build`. A `webpack()` key in config fails the build. | A3, S12: nothing webpack-specific, but worth stating. | No bundler config. `eslint-plugin-boundaries` is a lint rule, not a bundler plugin, so it is unaffected. |
+| N7 | Route types are generated: `LayoutProps<'/'>` and `PageProps` are globals produced by `next typegen`, and `next-env.d.ts` is git-ignored by the scaffold. **Verified:** on a clean checkout `pnpm typecheck` fails with `Cannot find name 'LayoutProps'` until a build or typegen has run. | §11 M1 "CI green"; `pnpm check` runs typecheck before build. | Milestone 1 changes the script to `"typecheck": "next typegen && tsc --noEmit"`. |
+| N8 | `next build` no longer prints route sizes or First Load JS. | §10 "JavaScript shipped to the client ≤ 120KB gzipped on `/`". | We measure it ourselves: a script sums the gzipped size of every `<script src>` in `.next/server/app/index.html`, skipping the `noModule` polyfill. **Verified on the empty scaffold: 136.0KB gzipped for modern browsers** (174.7KB including the 38.7KB legacy polyfill). The budget is below the framework floor. See §6 item 1. |
+| N9 | Next no longer overrides `scroll-behavior: smooth` during navigation. | S2: "Know more" smooth-scrolls, respecting reduced motion. | We do not set `scroll-behavior` globally. `scrollIntoView({ behavior })` picks `smooth` or `auto` from `prefers-reduced-motion`. Nav anchors use the same helper. |
+| N10 | Route Handlers: `runtime = 'edge'` is deprecated, `nodejs` is the default. GET is dynamic by default; POST always was. | §7.1 "Runtime: Node.js". | Nothing to change. We omit the `runtime` export because the default is already correct. |
+| N11 | React Compiler support is stable but opt-in and needs `babel-plugin-react-compiler`. | Not mentioned. | Not enabled. It is a dependency the PRD did not name and the page has almost no re-render pressure. |
+| N12 | Cache Components (`cacheComponents: true`) and Partial Prerendering are opt-in. | S1: fully static `/`. | Not enabled. The page is static without it, and enabling it changes `useSearchParams` semantics again. |
+| N13 | `AGENTS.md` is generated by `next dev` and re-added if removed; `CLAUDE.md` imports it. | Not mentioned. | Keep it committed. It points at the version-matched docs the reviewer and milestone sessions should read. |
+| N14 | Browser floor is Chrome, Edge, Firefox 111+ and Safari 16.4+. | V11: responsive 320px to 2560px. | `100svh`, `backdrop-filter`, `mask-composite` and `text-wrap: balance` are all inside that floor. |
+
+---
+
+## 2. Folder structure mapped to the four layers
+
+```
+content/                         CONTENT  imports nothing from src/
+  schema.ts                        Zod schemas and inferred types (PRD §5)
+  resume.ts                        the one Resume object; the only place résumé text lives
+  index.ts                         parses resume.ts with the schema, throws a readable error
+
+src/domain/                      DOMAIN   pure functions, no framework, no I/O
+  dates.ts                         sortEntriesAscending, formatDateRange, formatDuration
+  eras.ts                          eraForStep, assertErasCoverSteps
+  emphasis.ts                      parseEmphasis: "*word*" markers to segments (see §6 item 9)
+  seo.ts                           personJsonLd(resume, siteUrl)
+  contact.schema.ts                Zod schema shared by the form and the route handler
+
+src/application/                 APPLICATION  may import domain and content
+  email/EmailSender.ts             the interface (PRD §7.2)
+  email/ResendEmailSender.ts       Resend implementation; the only file that imports the SDK
+  email/FakeEmailSender.ts         test double that records sends
+  email/index.ts                   createEmailSender(env): the single factory
+  contact/handleContact.ts         (input, deps) => { status, body }; framework-free
+  contact/verifyTurnstile.ts       POST to Cloudflare siteverify; injected into handleContact
+
+src/components/                  PRESENTATION  may import content and domain, never application
+  primitives/                      one element, no résumé knowledge
+  composites/                      several primitives, still content-agnostic by props
+  sections/                        one per PRD §3 section; receive typed slices of Resume
+  hooks/                           useScramble, useOnceInView, useActiveStep, useProjectParam
+
+src/styles/
+  tokens.css                       PRD §8 tokens as custom properties
+  globals.css                      @import tailwindcss; @theme maps tokens; base styles; grain
+
+src/app/                         ROUTES  may import everything above
+  layout.tsx                       fonts, metadata, JSON-LD, skip link, background layers, analytics
+  page.tsx                         composes the six sections from content/index.ts
+  not-found.tsx
+  opengraph-image.tsx              generated 1200x630 card
+  sitemap.ts  robots.ts
+  styleguide/page.tsx              notFound() when NODE_ENV is production
+  api/contact/route.ts             Request in, handleContact, Response out
+
+public/hero/                     hero.mp4, hero.webm, hero-poster.jpg
+public/eras/                     era-1.jpg … era-5.jpg (gradient placeholders until supplied)
+public/resume/                   noah-zhong-resume.pdf (committed)
+
+tests/
+  unit/                            Vitest: domain, content validation, handleContact, PDF check
+  e2e/                             Playwright: flows in PRD §10, axe in three states, reduced-motion screenshots
+
+docs/adr/  docs/reports/  docs/references/
+.github/workflows/ci.yml
+.husky/pre-commit                lint-staged: prettier + eslint --fix on staged files
+scripts/client-js-size.mjs       the §10 JS budget measurement (N8)
+```
+
+**Import direction enforced by `eslint-plugin-boundaries`**
+
+| From \ To | content | domain | application | components | app |
+|---|---|---|---|---|---|
+| content | self | no | no | no | no |
+| domain | yes | self | no | no | no |
+| application | yes | yes | self | no | no |
+| components | yes | yes | **no** | self | no |
+| app | yes | yes | yes (only `application/email/index.ts` and `application/contact/*`) | yes | self |
+
+`domain` additionally forbids importing `react`, `next/*`, `motion/*` and `zod` is the one library it may use. Two path aliases: `@/*` for `src/*` (exists) and `@content/*` for `content/*` (Milestone 1 adds it, because `content/` sits outside `src/` per PRD §9).
+
+Components importing `domain` is a deliberate reading of PRD §9 "formatting lives in domain": the formatter is defined in domain and called from a component or the page. See §6 item 27.
+
+---
+
+## 3. Content schema (PRD §5, Zod)
+
+```ts
+// content/schema.ts
+import { z } from "zod";
+
+const yearMonth = z
+  .string()
+  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Use YYYY-MM");
+
+const slug = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "lowercase-with-dashes");
+const url = z.string().url();
+const nonEmpty = z.string().trim().min(1);
+
+export const PersonSchema = z.object({
+  name: nonEmpty,
+  eyebrow: nonEmpty,                       // added, see §6 item 8
+  headline: nonEmpty,                      // plain text with *emphasis* markers, see §6 item 9
+  location: nonEmpty,
+  email: z.string().email(),
+  phone: z.string().optional(),            // never rendered, see §6 item 12
+  links: z.object({ github: url, linkedin: url }),
+  bio: nonEmpty,
+  availability: nonEmpty,
+});
+
+export const EntryKindSchema = z.enum(["role", "education", "milestone"]);
+
+export const EntrySchema = z
+  .object({
+    id: slug,
+    kind: EntryKindSchema,
+    title: nonEmpty,
+    org: nonEmpty,
+    location: nonEmpty,
+    start: yearMonth,
+    end: z.union([yearMonth, z.literal("present")]),
+    bullets: z.array(nonEmpty).min(1).max(5),   // PRD §5 as resolved 2026-09-04
+    stack: z.array(nonEmpty).min(1).optional(),
+  })
+  .refine((e) => e.end === "present" || e.end >= e.start, {
+    message: "end is before start",
+    path: ["end"],
+  });
+
+export const ProjectSchema = z.object({
+  slug,
+  category: nonEmpty,
+  title: nonEmpty,
+  stack: z.array(nonEmpty).min(1),
+  pitch: nonEmpty,
+  details: z.array(nonEmpty).min(1),
+  links: z.object({ live: url.optional(), repo: url.optional() }),
+});
+
+export const SkillGroupSchema = z.object({
+  label: nonEmpty,
+  items: z.array(nonEmpty).min(1),
+});
+
+export const EraSchema = z
+  .object({
+    id: z.number().int().min(1).max(5),
+    image: z.string().startsWith("/eras/"),
+    alt: nonEmpty,
+    fromStep: z.number().int().min(1),       // 1-based, matching the PRD §4.2 table
+    toStep: z.number().int().min(1),
+  })
+  .refine((e) => e.toStep >= e.fromStep, { message: "toStep is before fromStep", path: ["toStep"] });
+
+export const ResumeSchema = z
+  .object({
+    person: PersonSchema,
+    entries: z.array(EntrySchema).min(1),
+    projects: z.array(ProjectSchema).min(1),
+    skills: z.array(SkillGroupSchema).length(5),
+    eras: z.array(EraSchema).length(5),
+  })
+  .superRefine((r, ctx) => {
+    // ids and slugs unique; eras cover steps 1..entries.length contiguously with no overlap
+    unique(r.entries.map((e) => e.id), ctx, ["entries"]);
+    unique(r.projects.map((p) => p.slug), ctx, ["projects"]);
+    assertErasCoverSteps(r.eras, r.entries.length, ctx);   // lives in domain/eras.ts, imported here
+  });
+
+export type Person = z.infer<typeof PersonSchema>;
+export type Entry = z.infer<typeof EntrySchema>;
+export type EntryKind = z.infer<typeof EntryKindSchema>;
+export type Project = z.infer<typeof ProjectSchema>;
+export type SkillGroup = z.infer<typeof SkillGroupSchema>;
+export type Era = z.infer<typeof EraSchema>;
+export type Resume = z.infer<typeof ResumeSchema>;
+```
+
+```ts
+// content/index.ts  (the only module the app imports content from; not a barrel, it does work)
+import { ResumeSchema, type Resume } from "./schema";
+import { resume as raw } from "./resume";
+
+const parsed = ResumeSchema.safeParse(raw);
+if (!parsed.success) {
+  const lines = parsed.error.issues.map((i) => `  ${i.path.join(".") || "(root)"}: ${i.message}`);
+  throw new Error(`content/resume.ts is invalid:\n${lines.join("\n")}`);
+}
+export const resume: Resume = parsed.data;
+```
+
+Note on the layer rule: `content/schema.ts` importing `assertErasCoverSteps` from `src/domain/eras.ts` breaks "content imports nothing". The alternative is to inline the era-coverage check in the schema. Decision in §6 item 13; the plan assumes inlining so the content layer stays leaf.
+
+```ts
+// src/domain/contact.schema.ts  (PRD §7.1, shared by form and route)
+export const ContactSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  email: z.string().trim().email().max(254),
+  message: z.string().trim().min(20).max(2000),
+  website: z.literal(""),                      // honeypot
+  turnstileToken: z.string().min(1),
+});
+export type ContactInput = z.infer<typeof ContactSchema>;
+```
+
+---
+
+## 4. Component inventory
+
+Conventions: server component unless marked *client*. Every component wrapping a native element extends `ComponentProps<'element'>`. Props are the slice the component uses, never the whole `Resume`. No component contains résumé text.
+
+### 4.1 Primitives (`src/components/primitives/`)
+
+| Component | Props | Notes |
+|---|---|---|
+| `SkipLink` | none | First focusable element, targets `#main`. |
+| `VisuallyHidden` | `ComponentProps<'span'>` | Screen-reader-only text. |
+| `MonoLabel` | `ComponentProps<'span'> & { tracking?: 'tight' \| 'wide' }` | Mono, uppercase, 12 to 13px. Used by eyebrow, dates, card tags, skill labels, section labels. |
+| `GlassLink` | `ComponentProps<'a'> & { size?: 'sm' \| 'lg' }` | `.liquid-glass` pill from hero-v3. |
+| `GlassButton` | `ComponentProps<'button'> & { size?: 'sm' \| 'lg' }` | Same skin, native button. |
+| `DrawButton` | `ComponentProps<'button'> & { drawOn?: 'hover' \| 'always' }` | Border-draw SVG rect from reference.html, 6px radius, mono label. Contact submit. |
+| `DrawLink` | `ComponentProps<'a'>` | Same skin as a link. Contact email, footer. |
+| `SectionRule` *client* | `{ className?: string }` | 1px SVG line, draws once via `useOnceInView`. |
+| `SectionHeading` | `{ index: string; label: string; title: string; as?: 'h2' }` | "01 — Story" label plus serif title at the §8 section scale. |
+| `Bullets` | `{ items: string[]; className?: string }` | `<ul>` with the 10px dash marker. |
+| `BackgroundLayers` | none | Fixed `--bg` gradient and the grain overlay (V9). Rendered once in layout. |
+| `EdgeGradientDefs` | none | The one `<svg><defs>` for the border-draw stroke gradient. Rendered once in layout. |
+
+### 4.2 Composites (`src/components/composites/`)
+
+| Component | Props | Notes |
+|---|---|---|
+| `SiteNav` *client* | `{ name: string; links: { href: string; label: string }[]; resumeHref: string }` | Logo, glass pill (≥768px), glass download button, hamburger (<768px) with disclosure menu (`aria-expanded`, `aria-controls`). Anchor clicks use the reduced-motion-aware scroll helper. |
+| `ScrambleText` *client* | `{ text: string; className?: string }` | Renders the final text in HTML for SR and no-JS; animated `aria-hidden` twin driven by `useScramble`. Separators and spaces are never scrambled. |
+| `FadeRiseGroup` *client* | `{ children: ReactNode; stagger?: number }` | `motion/react` variants with `staggerChildren` (default 0.2s). `useReducedMotion` renders the finished state. |
+| `FadeRiseItem` *client* | `{ children: ReactNode }` | Child variant, `opacity` and `translateY(24px)` only. |
+| `HeroVideo` *client* | `{ poster: { src: string; width: number; height: number }; sources: { mp4: string; webm: string } }` | `next/image fill preload` layer beneath a source-less `<video>`; sources attach after mount on desktop, motion-ok, non-Save-Data; `IntersectionObserver` and `visibilitychange` pause it. See §6 item 19 for why the `poster` attribute is omitted. |
+| `ResumeDownloadLink` *client* | `{ appearance: 'glass' \| 'draw' \| 'text'; size?: 'sm' \| 'lg'; children: ReactNode; className?: string }` | Always `href="/resume" download`, fires `track('resume_download')` then lets navigation proceed. |
+| `EraBackdrop` | `{ eras: Pick<Era, 'id' \| 'image' \| 'alt'>[] }` | Five absolutely stacked `next/image fill` layers. Opacity from `[data-era]` on the parent via CSS, `--dur-era` transition. |
+| `TimelineRail` | `{ total: number; active: number }` | Dots at the left edge, active filled. Decorative, `aria-hidden`. |
+| `TimelineStep` | `{ entry: Entry; index: number; dateRange: string; duration: string; eraImage: { src: string; alt: string } }` | One `100svh` step on desktop; a stacked card with a 16:9 `next/image` header under 768px. Same DOM, CSS decides. |
+| `StoryTimeline` *client* | `{ steps: TimelineStepProps[]; eras: Era[] }` | Owns `activeStep` from `useActiveStep` (IntersectionObserver, threshold 0.6). Sets `data-era` and `data-step` on the section. Renders `EraBackdrop`, `TimelineRail`, steps. SSR default is step 1, era 1. |
+| `ProjectCard` *client* | `{ project: Project; open: boolean; dimmed: boolean; onToggle: () => void; headingId: string }` | `<article>` containing a `<button aria-expanded aria-controls>` trigger and a detail panel. Links render in the panel, outside the button (see §6 item 15). `motion.article layout`. |
+| `ProjectGrid` *client* | `{ projects: Project[] }` | URL state via `useProjectParam` (`useSearchParams`, `router.push(..., { scroll: false })`). Escape closes. Focus moves into the open card and back to the trigger on close. |
+| `SkillCell` | `{ group: SkillGroup; span: 1 \| 2 }` | Label plus items joined as a sentence. |
+| `TurnstileWidget` *client* | `{ siteKey: string; onToken: (token: string \| null) => void }` | Loads the Cloudflare script on mount, renders the widget, resets on error. Typed `window.turnstile` declaration, no package. |
+| `ContactForm` *client* | `{ turnstileSiteKey: string; fallbackEmail: string }` | Fields, honeypot, Turnstile, `DrawButton` submit. State: `idle \| submitting \| success \| error`. Client validation with `ContactSchema`; server errors mapped to plain copy. |
+| `JsonLd` | `{ data: Record<string, unknown> }` | `<script type="application/ld+json">`. |
+
+### 4.3 Sections (`src/components/sections/`)
+
+| Component | Props | Renders |
+|---|---|---|
+| `Cover` | `{ person: Pick<Person, 'name' \| 'eyebrow' \| 'headline' \| 'bio'>; navLinks: NavLink[] }` | `HeroVideo`, `SiteNav`, `ScrambleText`, `h1` from `parseEmphasis(headline)`, bio at 56ch, `FadeRiseGroup` with "Know more" (`GlassButton`) and `ResumeDownloadLink`. |
+| `Story` | `{ entries: Entry[]; eras: Era[] }` | Sorts with `sortEntriesAscending`, formats dates with domain functions, passes `steps` to `StoryTimeline`. `SectionRule`, `SectionHeading`. |
+| `Projects` | `{ projects: Project[] }` | `SectionHeading`, `<Suspense fallback={closed grid}>` around `ProjectGrid` (N1). |
+| `Skills` | `{ groups: SkillGroup[] }` | Bento grid, first cell `span={2}`. |
+| `Contact` | `{ person: Pick<Person, 'email' \| 'availability' \| 'links'>; turnstileSiteKey: string }` | Two columns; left copy and links, right `ContactForm`. |
+| `Footer` | `{ name: string; repoUrl: string; year: number }` | Name, year, "Built with Next.js, deployed on Vercel", repo link, `/resume` link. |
+
+### 4.4 Hooks (`src/components/hooks/`)
+
+| Hook | Signature | Used by |
+|---|---|---|
+| `useScramble` | `(text: string, enabled: boolean) => string` | `ScrambleText` |
+| `useOnceInView` | `(ref, options?) => boolean` | `SectionRule`, entry fade in `TimelineStep` |
+| `useActiveStep` | `(containerRef, count) => number` | `StoryTimeline` |
+| `useProjectParam` | `() => { open: string \| null; setOpen: (slug: string \| null) => void }` | `ProjectGrid` |
+| `usePrefersReducedMotion` | `() => boolean` | `HeroVideo`, scroll helper. Motion components use `useReducedMotion` from `motion/react` instead. |
+
+---
+
+## 5. Milestones
+
+Each milestone: one session, one branch `milestone/N-name`, `pnpm check` green after every step, reviewer subagent on the diff, `docs/reports/milestone-N.md`, stop. Dependencies are listed so `pnpm add` approvals can be given up front.
+
+### Milestone 1: Foundation
+
+**Scope (PRD §11.1):** tooling, CI, tokens, fonts, layout shell, `/styleguide`.
+
+Steps:
+1. Scripts: `typecheck` becomes `next typegen && tsc --noEmit` (N7). `test`, `test:watch`, `e2e`, `js-size` added. `check` becomes `typecheck && lint && format:check && test && build && js-size`.
+2. `tsconfig.json`: add `noUncheckedIndexedAccess`, `@content/*` alias, `include` for `content/**`, `tests/**`, `scripts/**`.
+3. ESLint flat config: `typescript-eslint` `recommendedTypeChecked` with `projectService`, `eslint-plugin-jsx-a11y` strict, `eslint-plugin-boundaries` with the §2 matrix, `no-restricted-syntax` banning `addEventListener('scroll')` and `@ts-ignore` without a description.
+4. Vitest with jsdom and Testing Library; Playwright with `@axe-core/playwright`; Lighthouse CI config with the §10 budgets; Husky pre-commit running lint-staged.
+5. `src/styles/tokens.css` from PRD §8, `globals.css` with `@theme` mapping, base type scale, grain, focus ring.
+6. Fonts in `layout.tsx`: Instrument Serif 400 (+italic), Inter 400/500, JetBrains Mono 400/500 via `next/font/google`.
+7. Layout shell: `html lang="en-AU"`, skip link, `BackgroundLayers`, `EdgeGradientDefs`, `<main id="main">`, empty `page.tsx`, `not-found.tsx`. `@vercel/analytics` and `@vercel/speed-insights` components in layout.
+8. `/styleguide`: tokens, type scale, every primitive in every state, glass and draw buttons, reduced-motion toggle note. `notFound()` in production.
+9. `scripts/client-js-size.mjs` (N8) printing the gzipped total and failing above the agreed budget.
+10. `.github/workflows/ci.yml`: install, `pnpm check`, `pnpm e2e`, LHCI. `.env.example` with the five §7.3 variables.
+11. README skeleton: setup, scripts, layer diagram, how to edit content, how to replace the PDF, deploy.
+
+Dependencies: `zod` is deferred to M2. Dev: `typescript-eslint`, `eslint-plugin-jsx-a11y`, `eslint-plugin-boundaries`, `eslint-config-prettier`, `vitest`, `@vitejs/plugin-react`, `jsdom`, `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`, `@playwright/test`, `@axe-core/playwright`, `@lhci/cli`, `husky`, `lint-staged`. Runtime: `@vercel/analytics`, `@vercel/speed-insights`.
+
+Acceptance:
+- `pnpm check` green on a fresh clone (verifies N7).
+- A file in `src/components/` importing from `src/application/` fails `pnpm lint`. A file in `src/domain/` importing `react` fails `pnpm lint`.
+- `/styleguide` renders in dev and returns 404 from `next start`.
+- CI runs on a pull request and every job passes on the empty page.
+- Lighthouse mobile on the empty page: all four categories ≥ 95 (this is the floor; if it fails here the budget can never be met).
+
+Tests:
+- Unit: none yet beyond a smoke test that Vitest and jsdom run.
+- E2E: `/` returns 200 with one `h1` placeholder and the skip link is first in tab order; `/styleguide` is 404 in production mode; axe on `/` has zero violations.
+
+### Milestone 2: Content and domain
+
+**Scope (PRD §11.2):** schemas, `resume.ts` populated, domain functions, tests, `/resume` redirect. The PDF is already committed.
+
+Steps:
+1. `content/schema.ts` as in §3, `content/resume.ts` with the six entries, four projects, five skill groups and five eras mapped 1–2, 3, 4, 5, 6 (PRD §13), `content/index.ts`.
+2. `src/domain/dates.ts`, `eras.ts`, `emphasis.ts`, `seo.ts`, `contact.schema.ts`.
+3. `next.config.ts`: `redirects()` with `/resume` → `/resume/noah-zhong-resume.pdf`, `permanent: true`.
+4. `page.tsx` temporarily renders the parsed content as plain semantic HTML (headings, lists) so the build proves the content pipeline and the page has real text for later milestones to style.
+
+Dependencies: `zod`.
+
+Acceptance:
+- An invalid `resume.ts` (for example a bullet count of 2) fails `pnpm build` with a message naming the path `entries.2.bullets`.
+- `GET /resume` returns 308 to the PDF path; following it returns `application/pdf`.
+- All `[bracket]` placeholders are gone from `resume.ts`, or each remaining one is listed in the report.
+
+Tests:
+- Unit: `sortEntriesAscending` (ascending by start, tie-break by end then title, `present` sorts last on equal start); `formatDateRange` ("Sep 2022 to Jun 2024", "Jul 2026 to present"); `formatDuration` at month boundaries; `parseEmphasis` round-trips and rejects unbalanced markers; `eraForStep` and the coverage assertion (gap, overlap, out of range); `ContactSchema` bounds; `personJsonLd` shape; `content/index.ts` throws a message listing every failing field on a deliberately broken fixture; the real `resume.ts` parses.
+- Unit: `public/resume/noah-zhong-resume.pdf` exists, starts with `%PDF-`, is under 1MB (PRD §6 CI check, done as a test so it runs in `pnpm check`).
+- E2E: `/resume` resolves to a PDF response.
+
+### Milestone 3: Cover
+
+**Scope (PRD §11.3):** video component, poster, scramble, fade-rise, liquid glass, nav.
+
+Steps:
+1. `.liquid-glass` from hero-v3 into `globals.css`; `GlassLink`, `GlassButton`, `MonoLabel`, `VisuallyHidden`.
+2. `HeroVideo` per video-hero.md with the corrections in §6 items 19 and 20. Gradient placeholder poster until the real asset arrives.
+3. `useScramble`, `ScrambleText`.
+4. `FadeRiseGroup`, `FadeRiseItem` with `motion/react`.
+5. `SiteNav` with the disclosure menu under 768px.
+6. `ResumeDownloadLink` with the analytics event.
+7. `Cover` section wired to content. Scroll helper honouring reduced motion.
+
+Dependencies: `motion`.
+
+Acceptance:
+- Cover fills `100svh` at 320px and 2560px with no horizontal scroll.
+- On desktop with motion allowed, the video attaches after load and pauses when scrolled away and when the tab is hidden. On a 767px viewport, or with reduced motion, or with Save-Data, no video request is made.
+- The LCP element in a Lighthouse trace is the poster image.
+- With JavaScript disabled the eyebrow, headline, bio and both buttons are fully visible.
+- With reduced motion: no scramble, no fade-rise, everything at its final state, verified by screenshot.
+- Every nav link and button has a visible focus ring. Hamburger toggles `aria-expanded` and the menu is reachable by keyboard.
+- JS budget measurement recorded in the report.
+
+Tests:
+- Unit: `useScramble` resolves to the exact final string and never scrambles separators; `ResumeDownloadLink` calls `track` with `resume_download` and does not prevent default.
+- E2E: cover renders with one `h1`; "Know more" scrolls to `#story`; nav anchors land on each section; no video request under 768px; reduced-motion screenshot matches; axe zero violations.
+
+### Milestone 4: Story timeline
+
+**Scope (PRD §11.4):** sticky eras, steps, observer, mobile stacking, gradient placeholders.
+
+Steps:
+1. Five gradient placeholder JPEGs in `public/eras/` at 1920×1080, generated by a script and committed, so `next/image` has real files.
+2. `SectionRule`, `SectionHeading`, `Bullets`, `useOnceInView`, `EdgeGradientDefs`.
+3. `EraBackdrop` with `[data-era]` opacity CSS; `TimelineRail`; `TimelineStep`.
+4. `useActiveStep`, `StoryTimeline`.
+5. `Story` section wired to content with the domain formatters.
+
+Acceptance:
+- Desktop: section height is `entries × 100svh`; backdrop is sticky; scrolling through changes `data-era` at the configured boundaries; crossfade is opacity only over `--dur-era`.
+- Mobile (<768px): no sticky, no pinning, stacked cards with 16:9 headers; the desktop backdrop images are not requested.
+- Entry text fades once and never re-fires when scrolling back up.
+- `grep -rn 'addEventListener("scroll"' src` returns nothing, and the ESLint rule from M1 covers it.
+- Reduced motion: no crossfade transition, no entry fade; the active era still switches instantly.
+- Without JavaScript: era 1 shows, every entry is readable.
+
+Tests:
+- Unit: `useActiveStep` picks the step with ≥0.6 intersection and defaults to 1 (mocked `IntersectionObserver`); `eraForStep` mapping against the content.
+- E2E: scrolling to each step's offset changes `data-era` to the expected value; on a 390px viewport no sticky element exists in `#story` and cards stack; reduced-motion screenshot of mid-timeline; axe zero violations.
+
+### Milestone 5: Projects and Skills
+
+**Scope (PRD §11.5):** card morph with URL state, bento.
+
+Steps:
+1. `useProjectParam` on `useSearchParams` and `router.push` with `scroll: false`.
+2. `ProjectCard` as `<article>` with a `<button>` trigger and a panel that holds the links (§6 item 15). `motion.article layout` for the grid-column morph; siblings to 34% opacity.
+3. `ProjectGrid` with Escape, focus management, and the `Suspense` boundary in `Projects` (N1).
+4. `SkillCell`, `Skills` section.
+
+Acceptance:
+- Clicking a card sets `?project=slug`, expands it to the full grid width, dims siblings; a second click, Escape, or browser back closes and clears the query.
+- Loading `/?project=<slug>` directly opens that card without a layout jump.
+- Focus moves into the expanded card on open and returns to the trigger on close.
+- Reduced motion: instant open, no layout animation.
+- No `<a>` inside a `<button>` anywhere; axe `nested-interactive` passes.
+- Skills renders five cells, first spanning two columns at ≥768px, single column below.
+
+Tests:
+- Unit: `ProjectCard` toggles `aria-expanded`, renders links only when open, and links are not descendants of the button; `useProjectParam` reads and writes the param.
+- E2E: expand, URL updates, Escape closes and clears; deep link opens the card; focus assertions; axe with one project expanded (the second of the three §10 states).
+
+### Milestone 6: Contact
+
+**Scope (PRD §11.6):** form, Turnstile, `EmailSender`, Resend.
+
+Steps:
+1. `EmailSender`, `FakeEmailSender`, `ResendEmailSender`, `createEmailSender` factory.
+2. `verifyTurnstile`, `handleContact` with the §7.1 sequence and the honeypot ordering fix (§6 item 17).
+3. `app/api/contact/route.ts`: content-type and size guard, JSON parse, `handleContact`, `Response.json`.
+4. `TurnstileWidget`, `DrawButton`, `DrawLink`, `ContactForm`, `Contact` section.
+5. `.env.example` completed. Cloudflare's documented test keys are used in dev, CI and Playwright so the widget always passes without a network dependency.
+
+Dependencies: `resend`.
+
+Acceptance:
+- Happy path sends one email with reply-to set to the visitor and returns `{ ok: true }`.
+- Validation failure returns 400 with per-field errors and the form shows them inline.
+- Filled honeypot returns 200, sends nothing, logs once.
+- Turnstile failure returns 403 with plain copy.
+- Provider failure returns 502 with the "email me directly at …" copy and the provider error appears only in server logs.
+- Handler completes under 300ms with the sender and verifier faked.
+- Submit button border-draws on hover and focus; states idle, submitting (disabled, spinner), success (cleared), error (inline) all reachable by keyboard.
+
+Tests:
+- Unit: `handleContact` with `FakeEmailSender` for happy path, validation failure, honeypot, Turnstile failure, provider failure; `ResendEmailSender` maps the message to the SDK call (SDK mocked); factory throws a readable error when `RESEND_API_KEY` is missing.
+- E2E: validation errors appear; successful submission shows the confirmation (route mocked via Playwright `route()` for the network, or the Fake sender selected by an env flag); axe with the form in its error state (the third §10 state).
+
+### Milestone 7: Hardening
+
+**Scope (PRD §11.7):** a11y, SEO, Lighthouse budget, reduced-motion screenshots, README and ADRs, production deploy.
+
+Steps:
+1. Metadata: title, description, canonical from `NEXT_PUBLIC_SITE_URL`, Open Graph, Twitter, `opengraph-image.tsx`, `sitemap.ts`, `robots.ts`, JSON-LD `Person` from `personJsonLd`.
+2. Security headers and static CSP in `next.config.ts` per ADR 0002. `pnpm audit --audit-level high` in CI.
+3. Full keyboard traversal audit; heading order; landmarks.
+4. Lighthouse CI budgets enforced in CI with three runs and the median.
+5. Reduced-motion screenshot suite across all sections.
+6. README complete; `docs/adr/` for every deviation taken during M1 to M6; `WORKFLOW.md` trimmed or removed.
+7. Vercel project linked, environment variables set, production deploy from `main`, preview per pull request confirmed.
+
+Acceptance: every gate in PRD §10, each verified in CI on the pull request and again on the production URL, with the numbers in the report.
+
+Tests: all previous suites, plus a metadata E2E (title, canonical, OG tags, JSON-LD parses and contains `jobTitle`, `alumniOf`, `worksFor`, `knowsAbout`, `sameAs`), `sitemap.xml` and `robots.txt` return 200, and security headers are present on `/`.
+
+---
+
+## 6. Ambiguities, contradictions and errors in the PRD
+
+Each item ends with the recommendation the plan assumed. Owner answers from 2026-09-04 are marked **Resolved**; the PRD now reflects them. Item 1 is the only one still open.
+
+1. **JS budget is below the framework floor (§10). Decision.** The empty Next 16 scaffold ships 136KB gzipped to modern browsers before a line of app code (N8). `motion/react` with `layout` animations adds roughly 35 to 45KB, Vercel Analytics and Speed Insights about 3KB, our code perhaps 15KB. A realistic first-party total is 190 to 200KB. Recommendation: set the budget to **200KB gzipped, first-party scripts only, legacy polyfill and third-party Turnstile excluded**, measured by `scripts/client-js-size.mjs`, and revisit after M3 with real numbers. Alternative: drop Framer Motion and do fade-rise and the card morph in CSS, saving ~40KB but losing the layout morph quality V7 asks for. That would need an ADR. **Open: no number agreed yet.** The `js-size` script in M1 will print the total without failing until a budget is set.
+
+2. **`pnpm check` contents differ between CLAUDE.md and the repo.** CLAUDE.md says check includes unit tests; the bootstrap script does not. M1 adds `test` and `js-size` to `check`. `pnpm e2e` stays separate because Playwright takes minutes; CI runs it as its own job.
+
+3. **Three hero references disagree with each other and with the PRD.** `hero-prompt-v2.md` says "Do not use a video file", specifies a WebGL shader, Bricolage Grotesque, a gradient-sweep "AI Engineer." headline and a 1024px breakpoint, and points at a `hero-v2.html` that is not in the kit. `hero-v3.html` uses a shader canvas "standing in for the video". The PRD (V1) says video. Per CLAUDE.md the PRD wins on scope: video, no shader, no canvas. **Resolved:** `hero-prompt-v2.md` deleted. `hero-v3.html` and `video-hero.md` are the cover references; the shader in hero-v3 is a stand-in for the video and is not built.
+
+4. **`reference.html` palette and fonts are not the PRD's.** It uses Bricolage Grotesque and Instrument Sans on `#06060A` with violet and teal accents (`#A78BFA`, `#5EEAD4`) for the border-draw gradient, card tags and bullet markers. PRD §8 defines no accent colour at all and fixes the fonts as Instrument Serif, Inter, JetBrains Mono on `hsl(201 100% 13%)`. **Decision:** what colour is the border-draw stroke and the bullet marker? Recommendation: white at `--fg-80` for the stroke gradient (fading to transparent at both ends) and `--fg-62` for markers; no accent token. **Resolved:** white only. Stroke `--fg`, markers `--fg-62`. PRD §8 and CLAUDE.md updated; `reference.html` accents replaced with white so the file cannot mislead.
+
+5. **Nav position is unspecified.** `reference.html` has a fixed nav; `hero-v3.html` has an in-flow nav inside the hero. PRD §4.1 puts the nav row inside the cover. **Decision.** **Resolved:** in-flow on the cover only. The timeline rail and footer links cover navigation elsewhere. PRD §4.1 updated.
+
+6. **Nav pill versus plain links.** PRD V3 and §4.1 say the nav links sit in a liquid-glass pill. `hero-v3.html` renders them as plain links and only the CTA is glass. PRD wins: pill. The reference wins on how glass looks.
+
+7. **Two "Download résumé" buttons in one viewport.** §4.1 puts one in the nav row and one beside "Know more". Recommendation: keep both as written, since the PRD is explicit, but the report for M3 should include a screenshot so you can decide whether it reads as redundant.
+
+8. **The eyebrow text is résumé copy but has no home in the content model.** §4.1 fixes the string; §5 `Person` has no field for it; CLAUDE.md says résumé text never lives in a component. Added `Person.eyebrow` in §3.
+
+9. **Headline emphasis markup has no representation.** The headline has two muted phrases. HTML in content is out; a component holding the words is out. Recommendation: `Person.headline` is plain text with `*emphasis*` markers, and `domain/emphasis.ts` parses it into segments. The schema rejects unbalanced markers.
+
+10. **Bullet count conflict.** §5 says `bullets: string[3..6]`; §4.2 says "three to five bullets". Also a minimum of 3 for every `education` and `milestone` entry is forcing (Monash 2025 is a degree in progress). **Resolved:** 1 to 5 per entry, no minimum of 3. PRD §4.2 and §5 updated; schema in §3 updated.
+
+11. **Six entries, a seven-step era table.** §4.2 lists six entries and says "six to eight steps" but the default era ranges assume 7 steps (era 5 covers 6 to 7). With six entries the defaults produce an out-of-range era. **Resolved:** six entries; mapping 1–2, 3, 4, 5, 6 in content. PRD §4.2 table and §13 updated; the schema asserts full contiguous coverage.
+
+12. **`Person.phone` on a public site.** §5 includes it; no section renders it, and it would ship inside the client bundle if any client component received `Person` whole. Recommendation: make it optional and never pass it to a component; better, remove it. Plan keeps it optional and unrendered.
+
+13. **Content layer purity versus era coverage validation.** The rule "content imports nothing" conflicts with wanting the era-coverage assertion in domain and used by the schema. Recommendation: the coverage check lives inline in `content/schema.ts` (it is validation, which is the schema's job), and `domain/eras.ts` only maps steps to eras at render time.
+
+14. **S3 and S4 describe a generated PDF; §6 says the PDF is hand-maintained.** "The PDF sorts descending" and "both web and PDF read from it" are leftovers. §6 is the current intent. **Resolved:** S3 and S4 rewritten; the web never reads the PDF.
+
+15. **Links inside a `<button>` are invalid HTML and an axe failure (§4.3).** Cards are buttons, and the expanded card "reveals its detail list and links". Interactive content cannot nest inside a button; axe reports `nested-interactive`. **Resolved:** the card is an `<article>` whose header is the `<button>` trigger; the detail panel with links is a sibling of the button inside the article. PRD §4.3 updated. The whole article still animates with `layout`.
+
+16. **`layoutId` is the wrong tool for an in-place expansion.** `layoutId` is for a shared element across two different components. A card changing its own grid span is a `layout` animation on one element. Plan uses `layout`. Also `router.push` scrolls to the top by default in the App Router; the plan passes `{ scroll: false }` or the page jumps on every card click.
+
+17. **Honeypot ordering in §7.1.** The sequence says "validate body → reject if honeypot filled (return 200 silently)". If validation runs first with `website: must be empty`, a bot gets a 400 that names the honeypot field. **Resolved:** read `website` before schema validation; if non-empty, log and return 200; then validate. PRD §7.1 updated.
+
+18. **`bullets` in §4.2 versus `reference.html` bold spans.** The reference bolds phrases inside bullets with `<b>`. Content is plain strings. Recommendation: no inline emphasis in bullets. If wanted, reuse the `*marker*` convention from item 9.
+
+19. **The poster cannot be "via `next/image`" and also the `<video poster>` (V1, video-hero.md).** The `poster` attribute takes a URL, not a component, and pointing it at the raw JPEG while `next/image` serves an optimised variant downloads the image twice. Plan: a `next/image fill preload` layer beneath a source-less `<video>` with no `poster` attribute; the video is transparent until it plays, so the image is the LCP element. This deviates from video-hero.md's snippet in one attribute and needs no ADR, but is recorded here.
+
+20. **video-hero.md uses `(navigator as any)`.** Zero `any` is a rule. Plan types `navigator.connection` with a local interface narrowing.
+
+21. **Timeline mobile layout doubles the DOM if built as two trees.** §4.2 describes desktop and mobile as separate layouts. Rendering both and toggling with CSS doubles the entries and images. Plan: one DOM; each step carries a 16:9 `next/image` header that only displays under 768px, and lazy loading means hidden images never download. The backdrop is `display: none` under 768px.
+
+22. **`scroll-snap` is listed as optional (V8).** Recommendation: do not use it. It fights nav-anchor scrolling, the "Know more" scroll, and trackpad momentum, and the observer works without it.
+
+23. **Duration for "present" entries is computed at build time.** The page is static, so "1 yr 3 mos" goes stale between deploys. Recommendation: accept it and note it in the README, or show only the range for open-ended entries. Plan computes at build time.
+
+24. **A strict CSP is incompatible with a static page (§10, N3). Decision.** Nonce-based `script-src` requires dynamic rendering, which contradicts S1 and costs LCP. Turnstile also needs `https://challenges.cloudflare.com` in `script-src` and `frame-src`, and Vercel Analytics needs its script host and `connect-src`. Recommendation: static headers with `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://va.vercel-scripts.com`, `frame-src https://challenges.cloudflare.com`, `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, plus HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`. **Resolved:** static header. Recorded in `docs/adr/0002-csp.md`, which also explains why `script-src` needs `'unsafe-inline'` and not only `style-src`. Lighthouse Best Practices does not penalise `'unsafe-inline'` on a page with no user-generated content.
+
+25. **"Grep for `addEventListener("scroll"` returns nothing" (§10) must be scoped to `src/`.** `motion` and Next both contain scroll listeners in `node_modules`. The CI grep and the ESLint rule run on `src/` and `content/` only.
+
+26. **§10 Video "and any future canvas".** The motion inventory says nothing else is allowed. Treat as "no canvas".
+
+27. **Who calls the date formatter.** §9 says a section "does not format dates" and "formatting lives in domain". Plan: the `Story` section (server) calls `formatDateRange` and passes strings to `TimelineStep`. Components may import `domain`; the boundary matrix allows it.
+
+28. **`content/` is outside `src/` but the only alias is `@/*` → `src/*`.** M1 adds `@content/*`. Alternative is moving `content/` under `src/`, which contradicts §9's diagram.
+
+29. **Hamburger behaviour is unspecified (§4.1).** What opens, whether it traps focus, how it closes. Plan: a disclosure (not a dialog): button with `aria-expanded` and `aria-controls`, a glass panel below the nav listing the four anchors and the download link, closes on link click, Escape, and outside click. No focus trap because the page remains usable behind it.
+
+30. **Instrument Serif ships only weight 400.** `reference.html` and the now-deleted `hero-prompt-v2.md` asked for 500 to 800 display weights, which do not exist for this face. PRD §8 says 400 and hero-v3 uses 400. Nothing to change, but do not request other weights from `next/font`.
+
+31. **`/styleguide` is also unavailable on Vercel previews**, because previews are production builds and `notFound()` runs at build time. If you want it on previews, gate on `VERCEL_ENV !== 'production'` instead of `NODE_ENV`. Plan uses `NODE_ENV` as the PRD says.
+
+32. **Lighthouse ≥ 95 on CI runners is noisy.** GitHub Actions machines vary run to run. Plan: LHCI with `numberOfRuns: 3`, assert on the median, and keep the production URL run in M7 as the authoritative number.
+
+33. **`Person` needs `jobTitle` for JSON-LD** (§10 SEO). `headline` is a sentence with emphasis markers, not a job title. Recommendation: reuse `eyebrow`'s middle segment or add `Person.role: string`. Plan adds `role`.
+
+34. **Open questions in §13.** **Resolved:** (1) oldest-first confirmed. (2) All five eras from the start with gradient placeholders, mapped 1–2, 3, 4, 5, 6.
+
+---
+
+## 7. Dependencies to be added, by milestone
+
+| Milestone | Runtime | Dev |
+|---|---|---|
+| 1 | `@vercel/analytics`, `@vercel/speed-insights` | `typescript-eslint`, `eslint-plugin-jsx-a11y`, `eslint-plugin-boundaries`, `eslint-config-prettier`, `vitest`, `@vitejs/plugin-react`, `jsdom`, `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`, `@playwright/test`, `@axe-core/playwright`, `@lhci/cli`, `husky`, `lint-staged` |
+| 2 | `zod` | |
+| 3 | `motion` | |
+| 6 | `resend` | |
+
+Nothing else. Turnstile is a script tag with a typed `window.turnstile` declaration, not a package. No icon library; the two arrows are inline SVG.
