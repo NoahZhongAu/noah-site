@@ -49,3 +49,6 @@ next-env.d.ts
 /playwright-report
 /test-results
 /.lighthouseci
+
+# autopilot run log (scripts/autopilot.sh)
+/docs/reports/autopilot.log
