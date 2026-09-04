@@ -33,6 +33,10 @@ export const metadata: Metadata = {
   description: "Résumé site.",
 };
 
+// Vercel serves both scripts from /_vercel/* on its platform only. Anywhere
+// else (CI, Lighthouse, local start) they 404 and cost Best Practices points.
+const onVercel = process.env.VERCEL === "1";
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
@@ -44,8 +48,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <BackgroundLayers />
         <EdgeGradientDefs />
         <main id="main">{children}</main>
-        <Analytics />
-        <SpeedInsights />
+        {onVercel ? <Analytics /> : null}
+        {onVercel ? <SpeedInsights /> : null}
       </body>
     </html>
   );
