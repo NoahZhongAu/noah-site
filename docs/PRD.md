@@ -20,7 +20,7 @@ Every visual and structural requirement gathered so far, matched to the technolo
 | V5 | Text scramble on the eyebrow line, plain white | Custom 40-line `useScramble` hook, `requestAnimationFrame` | Too small to justify a dependency. Renders the final string in HTML so screen readers and no-JS visitors see real text. |
 | V6 | Border draw on section rules (on scroll-in) and on CTA hover | Inline SVG `stroke-dasharray` and `stroke-dashoffset` animated with CSS; scroll trigger via `IntersectionObserver` | Runs on the compositor thread. No JS per frame. |
 | V7 | Project card expands in place, siblings dim, URL reflects the open card | Framer Motion `layout` and `layoutId` on the card; `useSearchParams` for `?project=slug` | `layoutId` is the cleanest implementation of a shared-element morph in React. URL state makes the expanded card linkable and gives the back button meaning. |
-| V8 | Scroll-driven story timeline: each experience fills the screen one at a time; background crossfades through five computing-era illustrations as you scroll | `position: sticky` backdrop inside a tall section; one `100svh` step per entry; `IntersectionObserver` sets the active era; CSS `opacity` transition crossfades five `next/image` layers; optional `scroll-snap` | Zero scroll listeners, zero per-frame JavaScript. Opacity transitions are handled by the GPU. This is the simplest thing that cannot stutter. |
+| V8 | Scroll-driven story timeline: each experience fills the screen one at a time; the era backdrop pulls focus from one computing-era illustration to the next as you scroll, with fireflies drifting over it | `position: sticky` backdrop inside a tall section; one `100svh` step per entry with `scroll-snap` on desktop; `IntersectionObserver` sets the active era; CSS transitions on `opacity`, `filter` and `transform` swap seven `next/image` layers (ADR 0006); a canvas 2D fireflies layer (ADR 0005) | Zero scroll listeners, zero per-frame JavaScript for the transition. Blur is the one filter that is not free; §4.2 sets a frame-time gate for it. |
 | V9 | Big, readable, pure-white type; colour or imagery reaching every pixel; no flat black bands between sections | Design tokens as CSS custom properties consumed by Tailwind v4 `@theme`; fixed full-viewport background layers; no section paints an opaque background | Tokens in one file mean one place to change. Fixed layers mean the backdrop is never "behind the hero only." |
 | V10 | Reduced-motion compliance across every effect | `prefers-reduced-motion` media query in CSS; `useReducedMotion()` from Framer Motion in components | Content appears at its final state instantly. Video shows poster only. This is a hard acceptance gate, not a nice-to-have. |
 | V11 | Responsive from 320px to 2560px | Tailwind breakpoints; fluid type via `clamp()`; timeline collapses to stacked cards under 768px | Pinned full-screen steps are hostile on phones; stacking is the honest mobile version. |
@@ -124,9 +124,15 @@ Purpose: tell the career as a forward-moving story and show breadth.
 
 **Data:** every entry in `content/resume.ts` with `kind: "role" | "education" | "milestone"`, sorted ascending by start date. Expected entries: XJTLU 2022, Chengtian co-founding 2023, Suzhou tutoring and debate coaching 2024, CUHK-Shenzhen internship 2024, Monash 2025, Airbotix 2026, AIDC 2026. Seven steps at launch.
 
-**Layout, desktop (768px and up):** a tall section whose height is `steps × 100svh`. A `position: sticky; top: 0; height: 100svh` backdrop holds seven era illustrations stacked absolutely, one per step. Each step is a `100svh` block containing one entry, vertically centred, left-aligned, max width 60ch: date range and duration in mono, role or degree title in serif, organisation, one to five bullets. A thin vertical rail at the left edge shows all steps as dots, the active one filled.
+**Layout, desktop (768px and up):** a tall section whose height is `steps × 100svh`. A `position: sticky; top: 0; height: 100svh` backdrop holds seven era illustrations stacked absolutely, one per step. Each step is a `100svh` block containing one entry, vertically centred, left-aligned, max width 60ch: date range and duration in mono, role or degree title in serif, organisation, one to five bullets. A thin vertical rail at the left edge shows all steps as dots; the active dot is filled, scaled up and glows. A step counter sits bottom right in mono, tabular figures, "03 / 07", the current number in `--fg` and the rest in `--fg-62`.
 
-**Era backdrop:** seven illustrations, one per step, mapped by step range so the mapping can change without code. Era boundaries are configured in content, not hardcoded. Crossfade by opacity over 900ms when the active step changes. Every figure in every illustration is seen from behind or in silhouette, matching the hero.
+**Scroll snap, desktop only:** the document uses `scroll-snap-type: y mandatory` while the story is in view and every step has `scroll-snap-align: start`, so one wheel gesture moves one entry and each entry fills the screen. Under 768px there is no snap. (Overrides PLAN §6 item 22; see ADR 0006.)
+
+**Era backdrop:** seven illustrations, one per step, mapped by step range so the mapping can change without code. Era boundaries are configured in content, not hardcoded. Every figure in every illustration is seen from behind or in silhouette, matching the hero.
+
+**Transition, "focus pull" (ADR 0006, reference `docs/references/timeline-demo.html` mode B):** when the active step changes, the outgoing layer goes to `filter: blur(18px) brightness(0.55)`, `transform: scale(1.06)` and opacity 0 over 1.1s; the incoming layer starts in that same blurred, scaled state and resolves to sharp, `scale(1)`, opacity 1 over 1.1s. While a layer is active it runs one slow push-in, `scale(1)` to `scale(1.07)` over 14s, linear, `forwards`, restarted each time it becomes active. Entry text (date, title, organisation, bullets, in that order) comes in from opacity 0, `blur(8px)`, `translateY(8px)` to clear, 0.7s each, staggered 100ms. Easing is `--ease-out` (`cubic-bezier(0.16, 1, 0.3, 1)`) throughout. Only `transform`, `opacity` and `filter` animate. Two layers carry a blur at once for the 1.1s of a transition; the build measures frame time on a mid-range Android profile (Chrome DevTools 4× CPU throttle, 1080×1920) and reports it. If it drops below 50fps the blur is reduced to 10px before anything else is changed.
+
+**Fireflies (ADR 0005):** a `<canvas>` inside the sticky backdrop, above the era image and below the text, `aria-hidden`, `pointer-events: none`. 24 particles from 768px, 10 below. Warm amber `--firefly` (#FFD27A) drawn as a soft radial gradient, radius 2 to 5px with a 3× halo; slow sine drift with edge wrap; brightness pulses 20% to 100% on a 2 to 5s cycle per particle; a quarter of them are larger, brighter and slower. Canvas 2D, no library, under 3KB gzipped. Paused by `IntersectionObserver` when the backdrop is off-screen and on `visibilitychange`; re-seeded on resize. Not drawn under reduced motion or Save-Data.
 
 | Era | Subject | Step (of 7, set in content) |
 |---|---|---|
@@ -140,7 +146,9 @@ Purpose: tell the career as a forward-moving story and show breadth.
 
 **Layout, mobile (under 768px):** no sticky, no pinning. Entries stack as cards; each card's header is a 16:9 crop of its era illustration. Same content.
 
-**Behaviour:** `IntersectionObserver` with `threshold: 0.6` marks the active step and updates a `data-era` attribute on the section. CSS reads that attribute to set layer opacity. Entry text fades in on opacity only, once. Section rule border-draws once when the section enters view. No scroll listeners anywhere.
+**Behaviour:** `IntersectionObserver` with `threshold: 0.6` marks the active step and updates a `data-era` attribute on the section. CSS reads that attribute to drive the focus pull, the push-in, the rail and the counter. Entry text focuses in once per step and does not re-fire on scrolling back. Section rule border-draws once when the section enters view. No scroll listeners anywhere.
+
+**Reduced motion:** no snap, no blur, no push-in, no fireflies, no entry stagger; every step shows its final state and the era switches by instant opacity. **Save-Data:** no fireflies; everything else unchanged.
 
 ### 4.3 Projects
 
@@ -246,9 +254,9 @@ spacing: 4px scale, section rhythm 96px mobile / 160px desktop
 
 **Type scale:** headline `clamp(3rem, 8.5vw, 6rem)` serif 400, `line-height .95`, `letter-spacing -.03em`; section titles `clamp(2.5rem, 6vw, 4.5rem)`; body `clamp(17px, 1.15vw, 20px)`; mono labels 12 to 13px, `.02em` to `.18em` tracking.
 
-**Backgrounds:** the cover video and the era illustrations are the only imagery. Sections between them sit on `--bg` with the same grain overlay, never on flat black.
+**Backgrounds:** the cover video and the era illustrations are the only imagery; the story's fireflies canvas is the one drawn element on top of them. Sections between them sit on `--bg` with the same grain overlay, never on flat black.
 
-**Motion inventory, complete:** fade-rise (cover), text scramble (cover eyebrow), border draw (section rules on enter, buttons on hover and focus), card morph (projects), era crossfade and entry fade (story). Nothing else. Any new effect requires a PRD change.
+**Motion inventory, complete:** fade-rise (cover), text scramble (cover eyebrow), border draw (section rules on enter, buttons on hover and focus), card morph (projects), era focus pull and push-in, entry text focus, fireflies (story, ADR 0005 and 0006). Nothing else. Any new effect requires a PRD change.
 
 ## 9. Architecture and code principles
 

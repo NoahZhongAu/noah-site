@@ -20,7 +20,7 @@ const hero = {
 /** PRD §4.1. Full viewport, video behind, nav in flow at the top, copy centred in the rest. */
 export function Cover({ person, navLinks }: Props) {
   return (
-    <section id="top" className="relative flex min-h-svh flex-col">
+    <section id="top" className="snap-start relative flex min-h-svh flex-col">
       <HeroVideo poster={hero.poster} sources={hero.sources} />
 
       <div className="relative flex flex-1 flex-col">

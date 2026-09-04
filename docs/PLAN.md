@@ -512,7 +512,7 @@ Each item ends with the recommendation the plan assumed. Owner answers from 2026
 
 21. **Timeline mobile layout doubles the DOM if built as two trees.** §4.2 describes desktop and mobile as separate layouts. Rendering both and toggling with CSS doubles the entries and images. Plan: one DOM; each step carries a 16:9 `next/image` header that only displays under 768px, and lazy loading means hidden images never download. The backdrop is `display: none` under 768px.
 
-22. **`scroll-snap` is listed as optional (V8).** Recommendation: do not use it. It fights nav-anchor scrolling, the "Know more" scroll, and trackpad momentum, and the observer works without it.
+22. **`scroll-snap` is listed as optional (V8).** Recommendation: do not use it. It fights nav-anchor scrolling, the "Know more" scroll, and trackpad momentum, and the observer works without it. **Overridden 2026-09-05 by ADR 0006:** the owner chose mandatory snap on desktop after trying it in `docs/references/timeline-demo.html`; the ADR lists what milestone 4 must check.
 
 23. **Duration for "present" entries is computed at build time.** The page is static, so "1 yr 3 mos" goes stale between deploys. Recommendation: accept it and note it in the README, or show only the range for open-ended entries. Plan computes at build time.
 

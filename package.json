@@ -16,6 +16,7 @@
     "e2e": "playwright test",
     "js-size": "node scripts/client-js-size.mjs",
     "lhci": "lhci autorun",
+    "frame-time": "node scripts/frame-time.mjs",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm build && pnpm js-size",
     "prepare": "husky"
   },
