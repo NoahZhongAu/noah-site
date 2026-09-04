@@ -389,8 +389,9 @@
     animation: none;
   }
 
-  /* Story: no blur, no push-in, no stagger. The era still switches, by instant opacity. */
-  .era-layer {
+  /* Story: no blur, no push-in, no stagger. The era still switches, by instant opacity. The second selector outranks the active-layer rule. */
+  .era-layer,
+  [data-era] .era-layer[data-era-id] {
     filter: none;
     transform: none;
     animation: none;

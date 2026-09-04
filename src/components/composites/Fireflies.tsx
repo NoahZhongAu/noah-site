@@ -15,19 +15,22 @@ type NavigatorWithConnection = Navigator & {
   connection?: { saveData?: boolean };
 };
 
-const reduceQuery = "(prefers-reduced-motion: reduce)";
+// Desktop layout only: under 768px the backdrop that holds the canvas is display:none (plan decision 5).
+const queries = ["(prefers-reduced-motion: reduce)", "(max-width: 767px)"];
 
 function subscribe(onChange: () => void) {
-  const list = matchMedia(reduceQuery);
-  list.addEventListener("change", onChange);
-  return () => list.removeEventListener("change", onChange);
+  const lists = queries.map((query) => matchMedia(query));
+  for (const list of lists) list.addEventListener("change", onChange);
+  return () => {
+    for (const list of lists) list.removeEventListener("change", onChange);
+  };
 }
 
-/** Motion allowed and no Save-Data (ADR 0005); the server never wants it, so the HTML has no canvas. */
+/** Desktop width, motion allowed, no Save-Data (ADR 0005); the server never wants it, so the HTML has no canvas. */
 function getWanted() {
   const saveData =
     (navigator as NavigatorWithConnection).connection?.saveData === true;
-  return !saveData && !matchMedia(reduceQuery).matches;
+  return !saveData && queries.every((query) => !matchMedia(query).matches);
 }
 const getServerWanted = () => false;
 
