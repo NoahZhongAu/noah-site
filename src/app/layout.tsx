@@ -5,6 +5,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SkipLink } from "@/components/primitives/SkipLink";
 import { BackgroundLayers } from "@/components/primitives/BackgroundLayers";
 import { EdgeGradientDefs } from "@/components/primitives/EdgeGradientDefs";
+import { resume } from "@content/index";
 import "@/styles/globals.css";
 
 // Instrument Serif ships weight 400 only (PLAN §6 item 30). Do not request others.
@@ -27,10 +28,10 @@ const mono = JetBrains_Mono({
   variable: "--font-mono-src",
 });
 
-// Placeholder until milestone 7 builds the full metadata from content.
+// Milestone 7 completes the metadata; until then only the title and description come from content.
 export const metadata: Metadata = {
-  title: "Noah Zhong",
-  description: "Résumé site.",
+  title: resume.person.name,
+  description: resume.person.availability,
 };
 
 // Vercel serves both scripts from /_vercel/* on its platform only. Anywhere
