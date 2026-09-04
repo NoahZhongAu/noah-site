@@ -40,7 +40,9 @@ const valid = {
     entry("b", "2023-01", "2023-06"),
     entry("c", "2024-01", "2024-06"),
     entry("d", "2025-01", "2025-06"),
-    entry("e", "2026-01", "present"),
+    entry("e", "2026-01", "2026-03"),
+    entry("f", "2026-04", "2026-06"),
+    entry("g", "2026-07", "present"),
   ],
   projects: [
     {
@@ -57,7 +59,15 @@ const valid = {
     label: `G${i}`,
     items: ["x"],
   })),
-  eras: [era(1, 1, 1), era(2, 2, 2), era(3, 3, 3), era(4, 4, 4), era(5, 5, 5)],
+  eras: [
+    era(1, 1, 1),
+    era(2, 2, 2),
+    era(3, 3, 3),
+    era(4, 4, 4),
+    era(5, 5, 5),
+    era(6, 6, 6),
+    era(7, 7, 7),
+  ],
 };
 
 function pathsOf(input: unknown): string[] {
@@ -127,7 +137,7 @@ describe("ResumeSchema", () => {
     });
 
     it("rejects coverage that stops short of the entry count", () => {
-      const entries = [...valid.entries, entry("f", "2026-06", "present")];
+      const entries = [...valid.entries, entry("h", "2026-08", "present")];
       expect(pathsOf({ ...valid, entries })).toContain("eras");
     });
 
