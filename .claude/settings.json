@@ -1,0 +1,56 @@
+{
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash(pnpm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git branch *)",
+      "Bash(git checkout -b *)",
+      "Bash(git switch *)",
+      "Bash(vercel *)",
+      "WebFetch(domain:nextjs.org)",
+      "WebFetch(domain:developer.mozilla.org)",
+      "WebFetch(domain:motion.dev)",
+      "WebFetch(domain:tailwindcss.com)",
+      "WebFetch(domain:vercel.com)",
+      "WebFetch(domain:github.com)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(vercel --prod *)",
+      "Bash(pnpm add *)",
+      "Bash(pnpm remove *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(sudo *)",
+      "Bash(curl * | bash)",
+      "Bash(git reset --hard *)",
+      "Bash(git push --force *)",
+      "Read(.env)",
+      "Read(.env.*)",
+      "Edit(.env)",
+      "Edit(.env.*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/format.sh",
+            "timeout": 10000
+          }
+        ]
+      }
+    ]
+  }
+}

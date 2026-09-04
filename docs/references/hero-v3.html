@@ -1,0 +1,193 @@
+<title>Quiet Editorial Hero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500&display=swap">
+
+<style>
+:root{
+  --background:hsl(201 100% 13%);
+  --foreground:hsl(0 0% 100%);
+  --muted-foreground:hsl(240 4% 66%);
+  --border:hsl(0 0% 18%);
+  --font-display:"Instrument Serif",Georgia,serif;
+  --font-body:"Inter",system-ui,sans-serif;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;background:var(--background);color:var(--foreground);
+  font-family:var(--font-body);-webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+
+/* ---- background: shader stands in for the video ---- */
+.bg{position:fixed;inset:0;z-index:0;
+  background:
+    radial-gradient(70% 60% at 50% 40%,hsl(201 80% 22%),transparent 75%),
+    var(--background)}
+#silk{position:fixed;inset:0;z-index:1;width:100%;height:100%;display:block}
+
+/* Deliberately no vignette, no grain, no blobs: the prompt's own rule.
+   The scrim below is the one exception, and only because text sits on it. */
+.scrim{position:fixed;inset:0;z-index:2;pointer-events:none;
+  background:linear-gradient(180deg,rgba(0,20,35,.35),transparent 30%,transparent 70%,rgba(0,20,35,.45))}
+
+.page{position:relative;z-index:3;min-height:100svh;display:flex;flex-direction:column}
+
+/* ---- nav ---- */
+.nav{display:flex;align-items:center;justify-content:space-between;
+  padding:24px 32px;max-width:80rem;margin:0 auto;width:100%}
+.logo{font-family:var(--font-display);font-size:1.875rem;letter-spacing:-.02em;line-height:1;
+  color:var(--foreground);text-decoration:none}
+.logo sup{font-size:.75rem;font-family:var(--font-body);margin-left:2px}
+.links{display:none;gap:32px}
+.links a{font-size:.875rem;color:var(--muted-foreground);text-decoration:none;transition:color .2s}
+.links a.active,.links a:hover,.links a:focus-visible{color:var(--foreground)}
+.links a:focus-visible{outline:2px solid #fff;outline-offset:4px;border-radius:2px}
+@media (min-width:768px){.links{display:flex}}
+
+/* ---- liquid glass, verbatim from the prompt ---- */
+.liquid-glass{
+  background:rgba(255,255,255,.01);
+  background-blend-mode:luminosity;
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  border:none;
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.10);
+  position:relative;overflow:hidden;
+  color:var(--foreground);text-decoration:none;cursor:pointer;
+  font-family:var(--font-body);
+  transition:transform .25s cubic-bezier(.2,.8,.2,1);
+}
+.liquid-glass::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:1.4px;
+  background:linear-gradient(180deg,
+    rgba(255,255,255,.45) 0%,rgba(255,255,255,.15) 20%,
+    rgba(255,255,255,0) 40%,rgba(255,255,255,0) 60%,
+    rgba(255,255,255,.15) 80%,rgba(255,255,255,.45) 100%);
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  pointer-events:none;
+}
+.liquid-glass:hover,.liquid-glass:focus-visible{transform:scale(1.03)}
+.liquid-glass:focus-visible{outline:2px solid #fff;outline-offset:4px}
+
+.nav-cta{border-radius:999px;padding:10px 24px;font-size:.875rem;display:inline-flex}
+
+/* ---- hero ---- */
+.hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:90px 24px}
+
+h1{
+  font-family:var(--font-display);font-weight:400;
+  font-size:clamp(3rem,8.5vw,6rem);
+  line-height:.95;letter-spacing:-.03em;
+  max-width:80rem;margin:0;text-wrap:balance;
+}
+h1 em{font-style:normal;color:var(--muted-foreground)}
+
+.sub{color:var(--muted-foreground);font-size:clamp(1rem,1.3vw,1.125rem);line-height:1.65;
+  max-width:42rem;margin:32px 0 0}
+
+.hero-cta{border-radius:999px;padding:20px 56px;font-size:1rem;margin-top:48px;display:inline-flex}
+
+/* ---- fade-rise, verbatim ---- */
+@keyframes fade-rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.animate-fade-rise{animation:fade-rise .8s ease-out both}
+.animate-fade-rise-delay{animation:fade-rise .8s ease-out .2s both}
+.animate-fade-rise-delay-2{animation:fade-rise .8s ease-out .4s both}
+
+@media (prefers-reduced-motion:reduce){
+  .animate-fade-rise,.animate-fade-rise-delay,.animate-fade-rise-delay-2{animation:none}
+  .liquid-glass{transition:none}
+}
+</style>
+
+<div class="bg"></div>
+<canvas id="silk" aria-hidden="true"></canvas>
+<div class="scrim"></div>
+
+<div class="page">
+  <nav class="nav">
+    <a class="logo" href="#">Noah Zhong<sup>®</sup></a>
+    <div class="links">
+      <a class="active" href="#">Home</a>
+      <a href="#">Experience</a>
+      <a href="#">Projects</a>
+      <a href="#">Writing</a>
+      <a href="#">Reach me</a>
+    </div>
+    <a class="liquid-glass nav-cta" href="#">Download résumé</a>
+  </nav>
+
+  <section class="hero">
+    <h1 class="animate-fade-rise">AI systems, <em>deployed</em><br>where the work <em>actually happens.</em></h1>
+    <p class="sub animate-fade-rise-delay">Computer Science student at Monash and AI Deployment Engineer at AIDC. I take LLM agent workflows from first prototype through to production support, inside the teams that use them.</p>
+    <a class="liquid-glass hero-cta animate-fade-rise-delay-2" href="#">See the work</a>
+  </section>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var cv = document.getElementById("silk");
+  var gl = cv.getContext("webgl") || cv.getContext("experimental-webgl");
+  if(!gl){ cv.style.display = "none"; return; }
+
+  var VERT = "attribute vec2 p;void main(){gl_Position=vec4(p,0.0,1.0);}";
+  /* Same silk technique as hero-v2, but tuned to play the role of the
+     cinematic video: near-monochrome navy, slower, lower contrast. */
+  var FRAG = [
+    "precision highp float;",
+    "uniform vec2 u_res; uniform float u_t;",
+    "float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}",
+    "float noise(vec2 p){vec2 i=floor(p),f=fract(p);vec2 u=f*f*(3.0-2.0*f);",
+    " return mix(mix(hash(i),hash(i+vec2(1.0,0.0)),u.x),",
+    "            mix(hash(i+vec2(0.0,1.0)),hash(i+vec2(1.0,1.0)),u.x),u.y);}",
+    "float fbm(vec2 p){float v=0.0,a=0.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.02;a*=0.5;}return v;}",
+    "void main(){",
+    " vec2 p=(gl_FragCoord.xy*2.0-u_res)/min(u_res.x,u_res.y);",
+    " p*=1.1;",
+    " float t=u_t*0.035;",
+    " vec2 q=vec2(fbm(p+vec2(0.0,t)),fbm(p+vec2(5.2,1.3-t)));",
+    " vec2 r=vec2(fbm(p+3.2*q+vec2(1.7,9.2)+t*1.2),fbm(p+3.2*q+vec2(8.3,2.8)-t));",
+    " float f=fbm(p+3.4*r);",
+    " vec3 c0=vec3(0.000,0.090,0.160);",   /* #001729 */
+    " vec3 c1=vec3(0.000,0.169,0.259);",   /* #002B42 the prompt's --background */
+    " vec3 c2=vec3(0.055,0.310,0.450);",   /* #0E4F73 */
+    " vec3 c3=vec3(0.160,0.470,0.600);",   /* #297899 soft highlight */
+    " vec3 col=mix(c0,c1,clamp(f*f*2.6,0.0,1.0));",
+    " col=mix(col,c2,clamp(length(q)*0.65,0.0,1.0));",
+    " col=mix(col,c3,clamp(r.x*0.45,0.0,1.0));",
+    " col*=0.55+0.7*f;",
+    " gl_FragColor=vec4(col,1.0);",
+    "}"
+  ].join("\n");
+
+  function sh(t,s){var o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);
+    return gl.getShaderParameter(o,gl.COMPILE_STATUS)?o:null;}
+  var vs=sh(gl.VERTEX_SHADER,VERT),fs=sh(gl.FRAGMENT_SHADER,FRAG);
+  if(!vs||!fs){cv.style.display="none";return;}
+  var prog=gl.createProgram();gl.attachShader(prog,vs);gl.attachShader(prog,fs);gl.linkProgram(prog);
+  if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){cv.style.display="none";return;}
+  gl.useProgram(prog);
+  var buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+  var loc=gl.getAttribLocation(prog,"p");gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+  var uRes=gl.getUniformLocation(prog,"u_res"),uT=gl.getUniformLocation(prog,"u_t");
+
+  var SCALE=0.5;
+  function size(){var w=Math.max(1,Math.floor(innerWidth*SCALE)),h=Math.max(1,Math.floor(innerHeight*SCALE));
+    cv.width=w;cv.height=h;gl.viewport(0,0,w,h);gl.uniform2f(uRes,w,h);}
+  size();addEventListener("resize",size);
+
+  var reduce=matchMedia("(prefers-reduced-motion: reduce)").matches,running=true;
+  document.addEventListener("visibilitychange",function(){running=!document.hidden;
+    if(running&&!reduce)requestAnimationFrame(frame);});
+  var start=performance.now();
+  function frame(now){gl.uniform1f(uT,reduce?20.0:(now-start)*0.001);gl.drawArrays(gl.TRIANGLES,0,3);
+    if(!reduce&&running)requestAnimationFrame(frame);}
+  requestAnimationFrame(frame);
+})();
+</script>
