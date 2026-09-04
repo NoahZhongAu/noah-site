@@ -46,9 +46,31 @@ function fadeRiseStyles(page: Page) {
     }),
   );
 }
-const fadeRiseFinished = [1, 2, 3].map(() => ({
+// The eyebrow and the buttons; the headline and bio never rise (ADR 0004).
+const fadeRiseFinished = [1, 2].map(() => ({
   opacity: "1",
   transform: "none",
+}));
+
+/** The LCP text must be painted on the first frame: full opacity, no animation, no fade-rise ancestor. */
+function lcpTextPaintsAtOnce(page: Page) {
+  return page.evaluate(() =>
+    ["h1", "#top h1 + p"].map((selector) => {
+      const el = document.querySelector<HTMLElement>(selector);
+      if (!el) return null;
+      const style = getComputedStyle(el);
+      return {
+        opacity: style.opacity,
+        animation: style.animationName,
+        rises: el.closest(".fade-rise") !== null,
+      };
+    }),
+  );
+}
+const paintedAtOnce = [1, 2].map(() => ({
+  opacity: "1",
+  animation: "none",
+  rises: false,
 }));
 
 async function isPaused(page: Page) {
@@ -66,6 +88,12 @@ test.describe("desktop", () => {
     const eyebrowLine = page.locator("#top p").first();
     await expect(eyebrowLine).toHaveText(eyebrow);
     await expect(eyebrowLine.locator("[aria-hidden]")).toHaveCount(0);
+  });
+
+  test("headline and bio are visible on the first frame", async ({ page }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    // Checked immediately, not polled: a value that is only right later is the bug.
+    expect(await lcpTextPaintsAtOnce(page)).toEqual(paintedAtOnce);
   });
 
   test("Know more scrolls to the story", async ({ page }) => {

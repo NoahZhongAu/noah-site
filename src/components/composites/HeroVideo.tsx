@@ -80,6 +80,7 @@ export function HeroVideo({ poster, sources }: Props) {
         alt=""
         fill
         preload
+        fetchPriority="high"
         sizes="100vw"
         className="object-cover"
       />

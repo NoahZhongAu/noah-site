@@ -27,28 +27,29 @@ export function Cover({ person, navLinks }: Props) {
         <SiteNav name={person.name} links={navLinks} />
 
         <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center md:py-20">
-          <p className="text-mono-label mb-8">
-            <ScrambleText text={person.eyebrow} />
-          </p>
+          {/* Only the eyebrow and the buttons rise. The headline and bio are
+              the LCP candidates on every viewport, so they paint at full
+              opacity on the first frame (ADR 0004). */}
+          <FadeRiseItem>
+            <p className="text-mono-label mb-8">
+              <ScrambleText text={person.eyebrow} />
+            </p>
+          </FadeRiseItem>
 
           <div className="flex flex-col items-center">
-            <FadeRiseItem>
-              <h1 className="text-headline max-w-7xl">
-                {parseEmphasis(person.headline).map((segment, index) =>
-                  segment.emphasis ? (
-                    <em key={index} className="text-fg-62 not-italic">
-                      {segment.text}
-                    </em>
-                  ) : (
-                    <span key={index}>{segment.text}</span>
-                  ),
-                )}
-              </h1>
-            </FadeRiseItem>
-            <FadeRiseItem order={1}>
-              <p className="mt-8 max-w-measure text-fg-80">{person.bio}</p>
-            </FadeRiseItem>
-            <FadeRiseItem order={2} className="mt-12">
+            <h1 className="text-headline max-w-7xl">
+              {parseEmphasis(person.headline).map((segment, index) =>
+                segment.emphasis ? (
+                  <em key={index} className="text-fg-62 not-italic">
+                    {segment.text}
+                  </em>
+                ) : (
+                  <span key={index}>{segment.text}</span>
+                ),
+              )}
+            </h1>
+            <p className="mt-8 max-w-measure text-fg-80">{person.bio}</p>
+            <FadeRiseItem order={1} className="mt-12">
               <CoverActions />
             </FadeRiseItem>
           </div>
