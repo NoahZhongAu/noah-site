@@ -242,13 +242,8 @@
   }
 }
 
-[data-era="1"] .era-layer[data-era-id="1"],
-[data-era="2"] .era-layer[data-era-id="2"],
-[data-era="3"] .era-layer[data-era-id="3"],
-[data-era="4"] .era-layer[data-era-id="4"],
-[data-era="5"] .era-layer[data-era-id="5"],
-[data-era="6"] .era-layer[data-era-id="6"],
-[data-era="7"] .era-layer[data-era-id="7"] {
+/* The timeline marks the active layer from the active step's layer id (ADR 0007), so any number of layers works. */
+.era-layer[data-active] {
   opacity: 1;
   transform: scale(1);
   filter: blur(0) brightness(1);
@@ -323,6 +318,15 @@
   }
 }
 
+/* The sticky "Story" label steps aside for the closing steps, which carry their own eyebrow (ADR 0007). */
+.story-header {
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+[data-closing] .story-header {
+  opacity: 0;
+}
+
 .story-dot {
   width: var(--rail-dot);
   height: var(--rail-dot);
@@ -391,7 +395,7 @@
 
   /* Story: no blur, no push-in, no stagger. The era still switches, by instant opacity. The second selector outranks the active-layer rule. */
   .era-layer,
-  [data-era] .era-layer[data-era-id] {
+  .era-layer[data-active] {
     filter: none;
     transform: none;
     animation: none;

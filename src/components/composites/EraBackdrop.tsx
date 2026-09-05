@@ -1,21 +1,27 @@
 import Image from "next/image";
-import type { Era } from "@content/schema";
 
-type Props = { eras: readonly Pick<Era, "id" | "image" | "alt">[] };
+export type Layer = { id: number; image: string; alt: string };
+
+type Props = { layers: readonly Layer[]; activeId: number };
 
 /**
- * Seven era illustrations stacked in the sticky backdrop (PRD §4.2). Which
- * one shows is CSS reading data-era on the section; the focus pull lives in
- * globals.css. The stack is decorative here: each entry's own card header
- * carries the illustration's alt text where it is content.
+ * The illustrations stacked in the sticky backdrop: seven eras (PRD §4.2)
+ * and three closing scenes (ADR 0007). The active one carries data-active
+ * and the focus pull in globals.css does the rest. Decorative here: each
+ * step's card header carries the illustration's alt text where it is content.
  */
-export function EraBackdrop({ eras }: Props) {
+export function EraBackdrop({ layers, activeId }: Props) {
   return (
     <div className="absolute inset-0" aria-hidden="true">
-      {eras.map((era) => (
-        <div key={era.id} className="era-layer" data-era-id={era.id}>
+      {layers.map((layer) => (
+        <div
+          key={layer.id}
+          className="era-layer"
+          data-era-id={layer.id}
+          data-active={layer.id === activeId ? "" : undefined}
+        >
           <Image
-            src={era.image}
+            src={layer.image}
             alt=""
             fill
             sizes="100vw"

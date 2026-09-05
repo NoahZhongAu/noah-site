@@ -77,6 +77,34 @@ export const EraSchema = z
     path: ["toStep"],
   });
 
+/** A closing-step backdrop (ADR 0007): the illustration and what it shows. */
+const SceneSchema = z.object({
+  image: z.string().startsWith("/closing/"),
+  alt: nonEmpty,
+});
+
+export const ClosingSchema = z.object({
+  projects: SceneSchema.extend({
+    eyebrow: nonEmpty,
+    title: nonEmpty,
+    repoLabel: nonEmpty,
+    liveLabel: nonEmpty,
+  }),
+  skills: SceneSchema.extend({ eyebrow: nonEmpty, title: nonEmpty }),
+  contact: SceneSchema.extend({
+    title: nonEmpty,
+    githubLabel: nonEmpty,
+    linkedinLabel: nonEmpty,
+  }),
+});
+
+export const FooterSchema = z.object({
+  note: nonEmpty,
+  repo: url,
+  repoLabel: nonEmpty,
+  resumeLabel: nonEmpty,
+});
+
 export const ResumeSchema = z
   .object({
     person: PersonSchema,
@@ -84,6 +112,8 @@ export const ResumeSchema = z
     projects: z.array(ProjectSchema).min(1),
     skills: z.array(SkillGroupSchema).length(5),
     eras: z.array(EraSchema).length(7),
+    closing: ClosingSchema,
+    footer: FooterSchema,
   })
   .superRefine((resume, ctx) => {
     reportDuplicates(
@@ -149,4 +179,6 @@ export type EntryKind = z.infer<typeof EntryKindSchema>;
 export type Project = z.infer<typeof ProjectSchema>;
 export type SkillGroup = z.infer<typeof SkillGroupSchema>;
 export type Era = z.infer<typeof EraSchema>;
+export type Closing = z.infer<typeof ClosingSchema>;
+export type Footer = z.infer<typeof FooterSchema>;
 export type Resume = z.infer<typeof ResumeSchema>;

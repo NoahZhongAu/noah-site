@@ -2,7 +2,9 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { resume } from "../../content/index";
 
-const total = resume.entries.length;
+// Seven story entries plus Projects, Skills and Contact (ADR 0007).
+const closing = ["projects", "skills", "contact"];
+const total = resume.entries.length + closing.length;
 const eraImage = /\/eras\/era-\d\.jpg/;
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -103,10 +105,9 @@ test.describe("desktop", () => {
         });
     }
 
+    // Past the last step the footer is the snap target and the attribute drops.
     await page.evaluate(() =>
-      document
-        .getElementById("projects")
-        ?.scrollIntoView({ behavior: "instant" }),
+      document.querySelector("footer")?.scrollIntoView({ behavior: "instant" }),
     );
     await expect.poll(() => storyState(page).then((s) => s.snap)).toBe(false);
   });
@@ -145,16 +146,52 @@ test.describe("desktop", () => {
     expect(filters[2]).toContain("blur(18px)");
   });
 
+  test("the closing steps carry their anchors, their own scenes, and hide the story label", async ({
+    page,
+  }) => {
+    await page.goto("/", { waitUntil: "networkidle" });
+    for (const [index, id] of closing.entries()) {
+      const n = resume.entries.length + index + 1;
+      await page.evaluate(
+        (id) =>
+          document.getElementById(id)?.scrollIntoView({ behavior: "instant" }),
+        id,
+      );
+      await expect
+        .poll(() => storyState(page))
+        .toMatchObject({
+          era: String(n),
+          step: String(n),
+          counter: `${pad(n)} / ${pad(total)}`,
+        });
+      await expect
+        .poll(() =>
+          page
+            .locator("#story header")
+            .evaluate((el) => getComputedStyle(el).opacity),
+        )
+        .toBe("0");
+    }
+    const contact = page.locator("#contact");
+    await expect(contact.getByRole("heading", { level: 2 })).toHaveText(
+      resume.closing.contact.title,
+    );
+    await expect(contact.locator("a.liquid-glass")).toHaveCount(3);
+    await expect(
+      page.locator("#projects").getByRole("heading", { level: 3 }),
+    ).toHaveCount(resume.projects.length);
+    await expect(page.locator("#skills dt")).toHaveCount(resume.skills.length);
+  });
+
   test("fireflies run on screen and pause off screen", async ({ page }) => {
     await page.goto("/", { waitUntil: "networkidle" });
     await goToStep(page, 1);
     await expect
       .poll(() => storyState(page).then((s) => s.running))
       .toBe("true");
+    // Contact is a step of the same backdrop now (ADR 0007); only the cover leaves it behind.
     await page.evaluate(() =>
-      document
-        .getElementById("contact")
-        ?.scrollIntoView({ behavior: "instant" }),
+      document.getElementById("top")?.scrollIntoView({ behavior: "instant" }),
     );
     await expect
       .poll(() => storyState(page).then((s) => s.running))
