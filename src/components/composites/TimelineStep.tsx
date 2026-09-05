@@ -1,40 +1,41 @@
 import Image from "next/image";
-import { Bullets } from "@/components/primitives/Bullets";
+import type { ReactNode } from "react";
+import type { Layer } from "./EraBackdrop";
 
-export type StepData = {
+export type TimelineStepData = {
   id: string;
-  title: string;
-  org: string;
-  location: string;
-  dateRange: string;
-  duration: string;
-  bullets: readonly string[];
-  era: { image: string; alt: string };
+  /** PRD §3 anchor for the closing steps; story entries have none. */
+  anchor?: string;
+  layerId: number;
+  /** A closing step (ADR 0007) carries its own eyebrow, so the sticky "Story" label hides. */
+  closing?: boolean;
+  children: ReactNode;
 };
 
 type Props = {
-  step: StepData;
+  step: TimelineStepData;
+  layer: Layer;
   shown: boolean;
   near: boolean;
   setRef: (element: HTMLLIElement | null) => void;
 };
 
 /**
- * One entry (PRD §4.2). From 768px it is a full-height snap point whose text
- * focuses in once (data-shown, CSS in globals.css); under 768px it is a card
- * with a 16:9 header from its era illustration. One DOM, CSS decides
- * (PLAN §6 item 21). The header is outside .story-card so the stagger
- * counts date, title, organisation, bullets and nothing else.
+ * One step of the timeline. From 768px it is a full-height snap point whose
+ * card focuses in once (data-shown, CSS in globals.css); under 768px it is a
+ * card with a 16:9 header from its layer illustration. One DOM, CSS decides
+ * (PLAN §6 item 21). The header is outside .story-card so the stagger counts
+ * only the card's own children.
  *
  * The header image is not in the server HTML: it mounts once the card is
  * within a viewport (`near`), so a phone loading the cover never fetches
- * story images in the LCP window. The noscript copy is for no-JS visitors.
+ * timeline images in the LCP window. The noscript copy is for no-JS visitors.
  */
-export function TimelineStep({ step, shown, near, setRef }: Props) {
+export function TimelineStep({ step, layer, shown, near, setRef }: Props) {
   const header = (
     <Image
-      src={step.era.image}
-      alt={step.era.alt}
+      src={layer.image}
+      alt={layer.alt}
       fill
       sizes="100vw"
       className="object-cover"
@@ -43,6 +44,7 @@ export function TimelineStep({ step, shown, near, setRef }: Props) {
 
   return (
     <li
+      id={step.anchor}
       ref={setRef}
       className="story-step md:flex md:min-h-svh md:items-center md:pr-gutter md:pl-gutter-story"
       data-shown={shown ? "" : undefined}
@@ -53,14 +55,7 @@ export function TimelineStep({ step, shown, near, setRef }: Props) {
         </div>
       </div>
       <div className="story-card max-w-measure-step pt-6 md:pt-0">
-        <p className="text-mono-label mb-3.5 text-fg-62">
-          {step.dateRange} · {step.duration}
-        </p>
-        <h3 className="text-step-title mb-2">{step.title}</h3>
-        <p className="mb-5 text-fg-80">
-          {step.org}, {step.location}
-        </p>
-        <Bullets items={step.bullets} />
+        {step.children}
       </div>
     </li>
   );

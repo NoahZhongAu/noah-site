@@ -68,6 +68,35 @@ const valid = {
     era(6, 6, 6),
     era(7, 7, 7),
   ],
+  closing: {
+    projects: {
+      eyebrow: "Selected work",
+      title: "Projects",
+      image: "/closing/a.jpg",
+      alt: "A",
+      repoLabel: "Repository",
+      liveLabel: "Live",
+    },
+    skills: {
+      eyebrow: "Skills",
+      title: "Skills",
+      image: "/closing/b.jpg",
+      alt: "B",
+    },
+    contact: {
+      title: "Hello.",
+      image: "/closing/c.jpg",
+      alt: "C",
+      githubLabel: "GitHub",
+      linkedinLabel: "LinkedIn",
+    },
+  },
+  footer: {
+    note: "Note.",
+    repo: "https://github.com/test/site",
+    repoLabel: "Repository",
+    resumeLabel: "Résumé",
+  },
 };
 
 function pathsOf(input: unknown): string[] {
@@ -162,5 +191,20 @@ describe("ResumeSchema", () => {
       ];
       expect(pathsOf({ ...valid, eras })).toContain("eras.3.toStep");
     });
+  });
+});
+
+describe("closing scenes (ADR 0007)", () => {
+  it("accepts the fixture", () => {
+    expect(pathsOf(valid)).toEqual([]);
+  });
+
+  it("keeps closing images under /closing/ and the footer repo a URL", () => {
+    const wrongImage = structuredClone(valid);
+    wrongImage.closing.skills.image = "/eras/era-1.jpg";
+    expect(pathsOf(wrongImage)).toContain("closing.skills.image");
+    const wrongRepo = structuredClone(valid);
+    wrongRepo.footer.repo = "not a url";
+    expect(pathsOf(wrongRepo)).toContain("footer.repo");
   });
 });

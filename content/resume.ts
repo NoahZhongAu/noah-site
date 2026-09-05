@@ -290,4 +290,33 @@ export const resume: Resume = {
       toStep: 7,
     },
   ],
+  closing: {
+    projects: {
+      eyebrow: "Selected work",
+      title: "Projects",
+      image: "/closing/closing-robot.jpg",
+      alt: "Two people crouched in a night meadow, seen from behind, with a small robot between them; one holds a glowing tablet and the other points at the robot.",
+      repoLabel: "Repository",
+      liveLabel: "Live",
+    },
+    skills: {
+      eyebrow: "Skills",
+      title: "What I work with",
+      image: "/closing/closing-team.jpg",
+      alt: "Four people seen from behind at a low table in a night meadow, gathered around one glowing laptop under the Milky Way.",
+    },
+    contact: {
+      title: "Let's build something.",
+      image: "/closing/closing-field.jpg",
+      alt: "A figure seen from behind sitting in a night meadow with a glowing tablet, a wheeled rover beside them and two drones hovering above.",
+      githubLabel: "GitHub",
+      linkedinLabel: "LinkedIn",
+    },
+  },
+  footer: {
+    note: "Built with Next.js, deployed on Vercel.",
+    repo: "https://github.com/NoahZhongAu/noah-site",
+    repoLabel: "Repository",
+    resumeLabel: "Download résumé",
+  },
 };

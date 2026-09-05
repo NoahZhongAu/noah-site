@@ -3,7 +3,10 @@ import type { Resume } from "@content/schema";
 type JsonLd = Record<string, unknown>;
 
 /** Schema.org Person for the root layout (PRD §10 SEO). */
-export function personJsonLd(resume: Resume, siteUrl: string): JsonLd {
+/** Only the fields the schema.org Person needs (PRD §9: a function receives what it uses). */
+export type PersonSource = Pick<Resume, "person" | "entries" | "skills">;
+
+export function personJsonLd(resume: PersonSource, siteUrl: string): JsonLd {
   const { person, entries, skills } = resume;
   const current = entries.filter(
     (e) => e.kind === "role" && e.end === "present",

@@ -152,6 +152,8 @@ Purpose: tell the career as a forward-moving story and show breadth.
 
 ### 4.3 Projects
 
+> Launch scope, 2026-09-05: superseded until its milestone by ADR 0007, which renders this section as a step of the story timeline.
+
 Grid of cards, `auto-fit, minmax(340px, 1fr)`. Each card: category tag in mono, title in serif, stack line in mono, one-sentence pitch, "Click to expand" hint. Each card is an `<article>` whose header is a `<button>` trigger with `aria-expanded`; the detail panel and its links live inside the article, never inside the button.
 
 Clicking a card sets `?project=slug`. The card animates with `layoutId` to span the full grid width and reveals its detail list and links (live, repo). Siblings fade to 34% opacity. Escape or a second click closes and clears the query. Focus moves into the expanded card on open and back to the trigger on close. Reduced motion: instant open, no animation.
@@ -160,9 +162,13 @@ Initial projects: the local RAG system over quant literature; the cardiovascular
 
 ### 4.4 Skills
 
+> Launch scope, 2026-09-05: superseded until its milestone by ADR 0007, which renders this section as a step of the story timeline.
+
 Bento grid, five groups matching the résumé: LLM & Agent Systems, Evaluation & Machine Learning, Languages, Backend & Data, Production & Delivery. The first group spans two columns. Each cell: group label in mono, items as a comma-separated sentence, not a tag cloud.
 
 ### 4.5 Contact
+
+> Launch scope, 2026-09-05: superseded until its milestone by ADR 0007, which renders this section as a step of the story timeline.
 
 Two columns on desktop.
 
